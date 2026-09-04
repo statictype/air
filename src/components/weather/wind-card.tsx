@@ -21,7 +21,7 @@ export function WindCard({ wind, windDir, windDegree, gust }: WindCardProps) {
   const gusts = read(gust, system);
 
   return (
-    <section className="swap-in swap-d-7 bento-tile flex flex-col sm:col-span-4 md:col-span-4 xl:order-7 xl:col-span-1">
+    <section className="swap-in swap-d-7 bento-tile flex flex-col sm:col-span-4 md:order-8 md:col-span-4 xl:order-7 xl:col-span-1">
       <div className="flex items-start justify-between gap-3">
         <p className="label-section">Wind</p>
         <div className="text-right">

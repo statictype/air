@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
+/* The widths where a forecast day is a column rather than a row. Between `md`
+   and `lg` the card shares its row with the Now tile and stacks. */
+@custom-variant fc-wide {
+  @media (min-width: 640px) and (max-width: 767.98px), (min-width: 1024px) {
+    @slot;
+  }
+}
+
 html,
 body,
 #root {
@@ -1001,7 +1009,7 @@ html, body { background: oklch(0.97 0.02 230); }
 .fc-cond { grid-area: cond; }
 .fc-prec { grid-area: prec; }
 
-@media (min-width: 640px) {
+@media (min-width: 640px) and (max-width: 767.98px), (min-width: 1024px) {
   .fc-day {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
@@ -1027,26 +1035,6 @@ html, body { background: oklch(0.97 0.02 230); }
 .fc-col {
   container-type: inline-size;
 }
-
-.fc-line {
-    flex-direction: row;
-    gap: 0.35rem;
-}
-
-
-@media (min-width: 768px) and (max-width: 900px) { 
-  .fc-line {
-    flex-direction: column;
-    gap: 0;
-  }
-  .fc-sep {
-    display: none;
-  }
-  .fc-prec-bar {
-    height: 2.5rem;
-  }
-}
-
 
 .scrollbar-none {
   scrollbar-width: none;

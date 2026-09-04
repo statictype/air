@@ -20,7 +20,7 @@ export function HeroCard({ location, current }: HeroCardProps) {
     <section
       className={cn(
         "swap-in swap-d-1 relative col-span-1 xl:order-1 overflow-hidden rounded-[2rem] p-6 text-white",
-        "sm:col-span-4 sm:p-10 md:col-span-8 xl:col-span-3 xl:p-12",
+        "sm:col-span-4 sm:p-10 md:order-1 md:col-span-8 xl:col-span-3 xl:p-12",
         isDay
           ? "hero-day shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35),0_30px_60px_-25px_rgba(24,102,225,0.55)]"
           : "hero-night shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_30px_60px_-25px_rgba(8,8,24,0.85)]",

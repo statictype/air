@@ -72,7 +72,7 @@ export function PressureCard({ pressureMb, pressure }: PressureCardProps) {
   const reading = read(pressure, system);
 
   return (
-    <section className="swap-in swap-d-8 bento-tile flex flex-col sm:col-span-4 md:col-span-4 xl:order-8 xl:col-span-1">
+    <section className="swap-in swap-d-8 bento-tile flex flex-col sm:col-span-4 md:order-9 md:col-span-4 xl:order-8 xl:col-span-1">
       <p className="label-section">Pressure</p>
       <div className="flex flex-1 flex-col justify-center">
         <div className="relative mx-auto w-full max-w-[240px]">

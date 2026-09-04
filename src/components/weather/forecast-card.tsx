@@ -22,10 +22,10 @@ const MAX_DAYS = 4;
  *  the same width. Static strings, because Tailwind scans source text and
  *  cannot see an interpolated column count. */
 const LAYOUTS: Record<number, string> = {
-  1: "sm:-mx-6 sm:grid-cols-1 sm:[&>*]:px-6",
-  2: "sm:-mx-6 sm:grid-cols-2 sm:[&>*]:px-6",
-  3: "sm:-mx-4 sm:grid-cols-3 sm:[&>*]:px-4",
-  4: "sm:-mx-3 sm:grid-cols-4 sm:[&>*]:px-3",
+  1: "fc-wide:-mx-6 fc-wide:grid-cols-1 fc-wide:[&>*]:px-6",
+  2: "fc-wide:-mx-6 fc-wide:grid-cols-2 fc-wide:[&>*]:px-6",
+  3: "fc-wide:-mx-4 fc-wide:grid-cols-3 fc-wide:[&>*]:px-4",
+  4: "fc-wide:-mx-3 fc-wide:grid-cols-4 fc-wide:[&>*]:px-3",
 };
 
 /** Matches the current plan's 3 days, so the common case does not reflow. */
@@ -37,21 +37,21 @@ export function ForecastCard({ forecast }: ForecastCardProps) {
   const layout = LAYOUTS[days?.length ?? SKELETON_DAYS] ?? LAYOUTS[MAX_DAYS];
 
   return (
-    <section className="swap-in swap-d-4 bento-tile flex flex-col justify-center sm:col-span-4 md:col-span-5 xl:order-4 xl:col-span-2">
-      {/* Days are a divided list below `sm` and a column matrix above it, so
-          the rule between them turns and the row padding folds away. `-my-3`
-          cancels the outer rows' own `py-3`. */}
+    <section className="swap-in swap-d-4 bento-tile flex flex-col justify-center sm:col-span-4 md:order-4 md:col-span-4 lg:order-5 lg:col-span-5 xl:order-4 xl:col-span-2">
+      {/* Days are a divided list outside `fc-wide` and a column matrix inside
+          it, so the rule between them turns and the row padding folds away.
+          `-my-3` cancels the outer rows' own `py-3`. */}
       <div
         className={cn(
           "-my-3 grid grid-cols-1 divide-y divide-foreground/10",
-          "sm:my-0 sm:divide-y-0",
-          "sm:[&>*:not(:last-child)]:border-r sm:[&>*:not(:last-child)]:border-foreground/10",
+          "fc-wide:my-0 fc-wide:divide-y-0",
+          "fc-wide:[&>*:not(:last-child)]:border-r fc-wide:[&>*:not(:last-child)]:border-foreground/10",
           layout,
         )}
       >
         {days
           ? days.map((day, i) => (
-              <div key={day.date} className="fc-col min-w-0 py-3 sm:py-0">
+              <div key={day.date} className="fc-col min-w-0 py-3 fc-wide:py-0">
                 <DayColumn
                   day={day}
                   label={forecastLabel(day.date, i)}
@@ -61,7 +61,7 @@ export function ForecastCard({ forecast }: ForecastCardProps) {
               </div>
             ))
           : Array.from({ length: SKELETON_DAYS }, (_, i) => (
-              <div key={i} className="fc-col min-w-0 py-3 sm:py-0">
+              <div key={i} className="fc-col min-w-0 py-3 fc-wide:py-0">
                 <DayColumnSkeleton />
               </div>
             ))}
@@ -115,7 +115,7 @@ function DayColumnSkeleton() {
       <div className="fc-icon size-10 shrink-0 animate-pulse rounded-xl bg-foreground/10" />
       <div className="fc-temp h-6 w-20 animate-pulse rounded bg-foreground/10" />
       <div className="fc-cond h-5 w-24 animate-pulse rounded bg-foreground/10" />
-      <div className="fc-prec-bar fc-prec h-5 w-14 animate-pulse rounded bg-foreground/10" />
+      <div className="fc-prec h-5 w-14 animate-pulse rounded bg-foreground/10" />
     </div>
   );
 }

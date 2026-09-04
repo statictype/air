@@ -98,9 +98,9 @@ describe("ForecastCard", () => {
     );
     const grid = () => container.querySelector(".grid")!;
 
-    expect(grid().className).toContain("sm:grid-cols-3");
+    expect(grid().className).toContain("fc-wide:grid-cols-3");
 
     rerender(<ForecastCard forecast={[day(TODAY), day(DAYS[0]!), day(DAYS[1]!), day(DAYS[2]!)]} />);
-    expect(grid().className).toContain("sm:grid-cols-4");
+    expect(grid().className).toContain("fc-wide:grid-cols-4");
   });
 });

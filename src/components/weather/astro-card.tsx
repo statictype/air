@@ -52,7 +52,7 @@ export function AstroCard({ astro, lat, isNight }: AstroCardProps) {
   return (
     <section
       className={cn(
-        "swap-in swap-d-5 bento-tile relative flex flex-col overflow-hidden sm:col-span-4 md:col-span-4 xl:order-5 xl:col-span-1",
+        "swap-in swap-d-5 bento-tile relative flex flex-col overflow-hidden sm:col-span-4 md:order-6 md:col-span-4 xl:order-5 xl:col-span-1",
         drawn === "sun" ? "tile-astro" : "tile-astro-moon",
       )}
     >

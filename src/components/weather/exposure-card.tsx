@@ -8,7 +8,7 @@ interface ExposureCardProps {
 
 export function ExposureCard({ uv, airQualityIndex, isDay }: ExposureCardProps) {
   return (
-    <section className="swap-in swap-d-6 bento-tile flex flex-col justify-center gap-5 sm:col-span-4 md:col-span-4 xl:order-6 xl:col-span-1">
+    <section className="swap-in swap-d-6 bento-tile flex flex-col justify-center gap-5 sm:col-span-4 md:order-7 md:col-span-4 xl:order-6 xl:col-span-1">
       <MetricRow
         label="UV Index"
         value={isDay ? Math.round(uv) : null}

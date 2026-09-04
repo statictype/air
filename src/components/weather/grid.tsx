@@ -31,8 +31,8 @@ export function WeatherGrid({ query, current: c, isStale }: WeatherGridProps) {
       key={swapKey}
       aria-busy={isStale}
       className={cn(
-        // 8 columns from `md` to `xl`, so the Now column can take 3 of them —
-        // 1.5 of the 4-column track the other breakpoints use.
+        // 8 columns from `md` to `xl`. The Now column takes 4 of them beside an
+        // equal forecast, and 3 from `lg`, where the hourly card returns to its side.
         "grid w-full auto-rows-[minmax(150px,auto)] grid-cols-1 gap-5 transition-opacity duration-300 sm:grid-cols-4 sm:gap-6 md:grid-cols-8 xl:grid-cols-4",
         hasAlerts && "md:grid-rows-[auto_auto] xl:grid-rows-none",
         isStale && "opacity-60",
@@ -45,9 +45,12 @@ export function WeatherGrid({ query, current: c, isStale }: WeatherGridProps) {
           alerts={alerts}
           tz={c.location.tz}
           isNight={c.current.timeOfDay === "night"}
-          className="md:col-span-8"
+          className="md:order-2 md:col-span-8"
         />
-        <NowCard current={c.current} className="md:col-span-3 md:row-span-2" />
+        <NowCard
+          current={c.current}
+          className="md:order-3 md:col-span-4 lg:col-span-3 lg:row-span-2"
+        />
       </div>
       <HourlyCard hourly={forecast.data?.hourly} tz={c.location.tz} />
       <ForecastCard forecast={forecast.data?.forecast} />
