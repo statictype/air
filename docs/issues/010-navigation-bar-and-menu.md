@@ -1,6 +1,6 @@
 # Issue 010 — Navigation bar and menu
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** —
 **Source:** original item 1
 
