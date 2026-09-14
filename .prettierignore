@@ -5,7 +5,3 @@ node_modules
 src/components/ui
 src/index.css
 pnpm-lock.yaml
-procedural-clouds-threejs-main
-procedural-stars-threejs-main
-procedural-weather-threejs-main
-dist-lab

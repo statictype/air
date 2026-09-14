@@ -42,4 +42,3 @@ coverage
 .impeccable
 # Vitest browser mode writes one on a failing assertion.
 __screenshots__
-dist-lab
