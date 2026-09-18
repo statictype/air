@@ -116,7 +116,7 @@ The dev server prints the URL.
 | `pnpm typecheck` | `tsc -b --noEmit`                                                              |
 | `pnpm lint`      | ESLint over `**/*.{ts,tsx}`                                                    |
 | `pnpm format`    | Prettier write (`format:check` to verify only)                                 |
-| `pnpm ci`        | format:check → lint → typecheck → test:run → build                             |
+| `pnpm run ci`    | format:check → lint → typecheck → test:run → build                             |
 | `pnpm deploy`    | Build and `wrangler deploy` — see [`docs/deployment.md`](./docs/deployment.md) |
 
 `pnpm test:run` includes a Playwright-driven browser project. Install the
