@@ -151,8 +151,8 @@ components:
 
 # Design System: air
 
-> **The name is `air`, and the mark is settled.** The header carries a drawn
-> wordmark: a filled disc with `air` set in white lowercase and a bank of clouds
+> **The mark.** The nav carries a drawn wordmark: a filled disc with `air` set in
+> white lowercase and a bank of clouds
 > across the bottom third. It ships as two raster assets, `src/assets/logo.webp`
 > and `logo-night.webp`, at 189 × 192 — the day disc runs `#55BDFC` → `#79DAFE`
 > with white clouds, the night disc `#0E111C` → `#0E182D` with clouds at
@@ -177,8 +177,8 @@ composition, driven by that city's local time — never the viewer's OS
 preference. That layer is the subject. Everything above it is the pane you read
 the subject through.
 
-Every surface therefore admits some of what is behind it: tiles, the search
-field, the dropdown and the mobile overlay are translucent, blurred and
+Every surface therefore admits some of what is behind it: the tiles, the nav
+bar, the search panel and every dialog are translucent, blurred and
 saturated (`backdrop-filter: blur(20–28px) saturate(140–160%)`). Two surfaces
 are exempt, and both because they are pictures rather than panes — the hero,
 which is the view itself, and the astro tile, which draws a sky of its own.
@@ -390,13 +390,14 @@ never by tracking or alpha. A third is a regression.
 `sm`. Full viewport height minimum; horizontal overflow hidden so the sky layer
 cannot introduce a scrollbar.
 
-**Grid.** One column on mobile, 4 from `sm`, 8 from `md`, 4 at `xl`, with
-`auto-rows-[minmax(150px,auto)]` and a `1.25rem` gap rising to `1.5rem`. From
-`md` to `xl` the alerts + Now column takes 3 of 8 and spans two rows, beside the
-hourly strip's 5 above the forecast's 5; the hero runs full width. The hero
-takes 3 of 4 at `xl` beside a 1-wide right
-column holding the alerts strip above the Now tile — what is urgent, then what
-is current. The alerts strip is the only tile that can be absent.
+**Grid.** One column on mobile, 4 from `sm`, 8 from `md`, back to 4 at `xl` —
+the container declares no `lg` step. `auto-rows-[minmax(150px,auto)]`, with a
+`1.25rem` gap rising to `1.5rem`. From `md` the hero runs full width above an
+alerts strip, and the Now tile takes 4 of 8 columns, narrowing to 3 and spanning
+two rows from `lg` so the hourly strip can sit beside it. At `xl` the hero takes
+3 of 4 beside a one-wide right column holding the alerts strip above the Now
+tile — what is urgent, then what is current. The alerts strip is the only tile
+that can be absent.
 
 **Document order is the mobile reading order** — the answer, then the next
 hours, then the next days. Desktop composition is restored with `xl:order-*`
@@ -405,8 +406,11 @@ only. Place a new tile in the reading order first, then give it a desktop order.
 **Density.** Tile padding comes from `--tile-pad` on `.bento-tile`, so the tiles
 cannot drift apart: `1.25rem`, rising to `1.5rem` at `sm`. The hero runs
 `1.5rem` → `2.5rem` at `sm` → `3rem` at `xl`. Interior rhythm is a `0.25rem`
-base scale. Breakpoints are Tailwind defaults; the search menu switches from
-mobile overlay to desktop dropdown at 1024.
+base scale. Breakpoints are Tailwind defaults. The nav takes the bottom edge
+below `md`, the top edge to `lg`, and a left rail above it; its panel is
+fullscreen below `xl` and a 420 px column beside the grid at `xl`. One `<Menu>`
+renders inside it at every placement — there is no variant prop and no second
+component.
 
 ## Elevation & Depth
 
@@ -418,8 +422,8 @@ overlapping is the shadow's reach, not its presence.
 
 - **Tile** `0 12px 30px -18px oklch(0.4 0.15 240 / 0.25)`; night `oklch(0 0 0 / 0.6)`.
 - **Hero** `0 30px 60px -25px` — deeper, because it is the largest surface.
-- **Overlay** `0 40px 80px -24px` + `0 16px 32px -10px` — dropdown, mobile panel,
-  dialogs. Surfaces over content the user was reading.
+- **Overlay** `0 40px 80px -24px` + `0 16px 32px -10px` — the search panel and
+  every dialog. Surfaces over content the reader was already looking at.
 - **Focus ring** `0 0 0 3px oklch(0.7 0.12 230 / 0.12)` on `:focus-within`. A
   state response, not elevation.
 
@@ -441,7 +445,7 @@ Rectangles with generous, uniform corners. No cut corners, no asymmetric radii,
 no clipping paths, no non-rectangular silhouettes.
 
 Icon wells and badges `0.75rem`, buttons and inputs `1rem`, every tile
-`1.75rem`, the hero `2rem`, dialogs and the search dropdown `2.25rem`, tab and
+`1.75rem`, the hero `2rem`, dialogs and the search panel `2.25rem`, tab and
 step buttons `999px`.
 
 Borders are one of two things: a white-alpha rim on a glass surface, or a
@@ -495,14 +499,14 @@ respond alike: the surface lifts on hover and focus, over 150–420 ms.
   Title with `line-clamp-2`, the window end at Caption, and a `+N` count at the
   right. No section label; the hazard names the tile. Hover also underlines it.
 
-### Search surface, dropdown, dialogs
+### Search surface and dialogs
 
 The search field is a `1.75rem` pill, `px-5 py-3`, white at 45% in day and 6% in
 night; on `:focus-within` fill and rim step up ~0.15 alpha and a 3 px ring
 appears, over `0.3s`. Inside: a 20 px icon at `foreground/70`, then a borderless
 transparent input at Title size.
 
-The dropdown and all dialogs share one chrome — `2.25rem` radius,
+The search panel and every dialog share one chrome — `2.25rem` radius,
 `blur(28px) saturate(160%)`, the Overlay shadow — and become bottom sheets below
 `sm`. The dialog scrim is a tinted blur, not a black slab:
 `oklch(0.34 0.055 250 / 0.34)` with `blur(6px) saturate(105%)`, and
@@ -557,8 +561,8 @@ otherwise. Condition icons set stroke from size instead.
 - **Don't** build generic SaaS card UI — opaque white cards, gray hairlines,
   8 px radius. The large radius and the translucency are the system.
 - **Don't** illustrate weather in the card layer. Condition is a line icon and a
-  sentence. This does not bind the sky layer: procedural weather effects and
-  time-of-day lighting behind the composition are planned, and when they land the
-  glass keeps its tint and the contrast floors still hold over moving footage.
+  sentence. This binds the card layer only; the sky layer behind the composition
+  is free to move, and the glass keeps its tint and its contrast floors over
+  whatever it shows.
 - **Don't** treat night as a dark mode. It is a full second cascade, equal in
   standing to day — the same room at a different hour.
