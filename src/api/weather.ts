@@ -17,7 +17,7 @@ interface ErrorBody {
 }
 
 async function request<T>(path: string): Promise<T> {
-  // Absolute URL: undici rejects relative ones under jsdom (changed in Node 24).
+  // Absolute URL: undici rejects a relative one under jsdom.
   const url = new URL(path, window.location.origin);
   let res: Response;
   try {

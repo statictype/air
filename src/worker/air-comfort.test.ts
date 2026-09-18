@@ -378,13 +378,13 @@ describe("airComfort — sentence format", () => {
     );
   });
 
-  it("renders the damp override naturally", () => {
+  it("joins a damp reading with 'and'", () => {
     expect(airComfort({ tempC: 10, feelsLikeC: 8, dewpointC: 7, humidity: 85 }).sentence).toBe(
       "Chilly and damp",
     );
   });
 
-  it("handles the multi-word extreme", () => {
+  it("lowercases a multi-word air label in full", () => {
     expect(airComfort({ tempC: 35, feelsLikeC: 47, dewpointC: 25, humidity: 71 }).sentence).toBe(
       "Dangerously hot and very humid",
     );

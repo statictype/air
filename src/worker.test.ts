@@ -331,7 +331,7 @@ describe("Worker /api/weather (current)", () => {
 });
 
 describe("Worker /api/weather/forecast", () => {
-  it("returns today + 3-day forecast + astro, and marks MISS", async () => {
+  it("returns three forecast days and astro, with no separate today field, marked MISS", async () => {
     mockResolve();
     fetchMock
       .get("https://api.weatherapi.com")
@@ -409,7 +409,7 @@ describe("Worker /api/weather/forecast", () => {
     expect(body.hourly[0]?.snowCm).toBeUndefined();
   });
 
-  it("defaults the new fields to 0 / false when upstream omits them", async () => {
+  it("defaults omitted day and hour fields to 0, false or null", async () => {
     const sparse = structuredClone(upstreamForecastFixture) as unknown as {
       forecast: {
         forecastday: Array<{
@@ -742,8 +742,8 @@ describe("Worker /api/search", () => {
   });
 });
 
-describe("Worker retired routes", () => {
-  it("404s the removed yesterday tier without calling upstream", async () => {
+describe("Worker unknown API routes", () => {
+  it("404s an unmatched /api path without calling upstream", async () => {
     const res = await SELF.fetch("https://example.com/api/weather/yesterday?q=London");
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { kind: string } };
