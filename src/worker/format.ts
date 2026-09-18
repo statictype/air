@@ -13,6 +13,7 @@ export function measure(value: string, suffix: string, spokenUnit: string): Meas
 export function fixed(n: number, decimals: number): string {
   const safe = Number.isFinite(n) ? n : 0;
   const out = safe.toFixed(decimals);
+  // -0.4 rounds to "-0"; print a bare zero instead.
   return out.startsWith("-") && Number(out) === 0 ? out.slice(1) : out;
 }
 

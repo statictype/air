@@ -17,7 +17,7 @@ describe("precipPair", () => {
     expect(precipPair(0.4, "mm")?.imperial.text).toBe("0.02 in");
   });
 
-  it("joins with a space before the unit, which `10 km` beside `0mm` did not", () => {
+  it("puts a space between the figure and the unit", () => {
     expect(precipPair(9, "mm")?.metric.text).toBe("9 mm");
   });
 

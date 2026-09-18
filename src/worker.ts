@@ -2,8 +2,6 @@ import { handleSearch } from "./worker/search-handler";
 import { createTierHandler } from "./worker/tiers";
 import type { Env } from "./worker/types";
 
-/** Anything not matched below goes to the static-asset binding, which serves the SPA. */
-
 const handleCurrent = createTierHandler("current");
 const handleForecast = createTierHandler("forecast");
 
@@ -29,6 +27,7 @@ export default {
       );
     }
 
+    // Everything outside /api/: the static-asset binding serves the SPA.
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
