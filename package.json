@@ -2,6 +2,27 @@
   "name": "air",
   "private": true,
   "version": "0.1.0",
+  "description": "Weather app on a single Cloudflare Worker: React SPA and its WeatherAPI proxy in one deploy.",
+  "keywords": [
+    "weather",
+    "cloudflare-workers",
+    "react",
+    "typescript",
+    "tanstack-query",
+    "vite",
+    "tailwindcss",
+    "edge-caching"
+  ],
+  "homepage": "https://air.drifting.workers.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statictype/oasis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/statictype/oasis/issues"
+  },
+  "author": "Andreea Eftene",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "engines": {
