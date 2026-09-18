@@ -1,8 +1,8 @@
 /**
  * Dev-only fixtures, selected by `?alerts=one|mixed|sparse|long|full`.
  *
- * Every fixture must stay inside the function, below the `import.meta.env.DEV`
- * guard — at module scope they survived tree-shaking and shipped to production.
+ * Keep every fixture inside the function, below the `import.meta.env.DEV`
+ * guard; at module scope they survive tree-shaking and ship to production.
  * Verify: `pnpm build && grep -c PREPAREDNESS dist/client/assets/index-*.js`.
  */
 

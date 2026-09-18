@@ -91,6 +91,8 @@ export function Nav(props: NavProps) {
       // inline; the field goes live again so the next query can be typed.
       setPending(null);
     }
+    // A status transition is the only trigger. `props.onClose` is a fresh
+    // closure on every parent render, so it stays out of the deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
@@ -133,6 +135,8 @@ export function Nav(props: NavProps) {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
+    // The listener is bound once per open. `props.onClose` is a fresh closure on
+    // every parent render, and adding it would rebind on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 

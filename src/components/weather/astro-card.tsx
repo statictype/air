@@ -11,8 +11,7 @@ import { cn } from "@/lib/utils";
 type AstroView = "sun" | "moon";
 
 /** Just short of the `.astro-body-set` duration in `index.css`, because the
- *  swap costs a render. By the time it paints, the outgoing body is at the far
- *  end of the arc and all but transparent. */
+ *  swap costs a render. */
 const SET_MS = 280;
 
 /** Milliseconds after the switch, left to right. The side info is not on the
@@ -21,7 +20,7 @@ const CHURN = { rise: 60, set: 120 } as const;
 
 interface AstroCardProps {
   astro: Astro | undefined;
-  /** Viewer latitude. Below the equator the moon's lit side mirrors. */
+  /** Latitude of the city. Below the equator the moon's lit side mirrors. */
   lat: number;
   isNight: boolean;
 }
@@ -145,8 +144,8 @@ function ArcPanel({ view, drawn, bodyClass, lat, astro }: ArcPanelProps) {
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* The arc is capped so its height cannot follow the card's width; the
-          times below it are not, and sit on the tile's edges. */}
+      {/* Capped so the arc's height cannot follow the card's width; the times
+          below it are uncapped. */}
       <div className="mx-auto w-full max-w-[400px]">
         <Arc kind={drawn} bodyClass={bodyClass} astro={astro} lat={lat} />
       </div>

@@ -314,7 +314,8 @@ function localNow(tz: string): { hour: number; date: string } {
   return { hour: h === 24 ? 0 : h, date: `${y}-${m}-${d}` };
 }
 
-/** UTC: these are the city's calendar dates. Viewer-local midday broke east of UTC+12. */
+/** UTC: these are the city's calendar dates. Viewer-local arithmetic lands on
+ *  the wrong day east of UTC+12. */
 function rollForward(date: string, hour: number): { date: string; hour: number } {
   if (hour < 24) return { date, hour };
   const d = new Date(`${date}T00:00:00Z`);

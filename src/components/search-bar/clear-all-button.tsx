@@ -30,10 +30,8 @@ export function ClearAllButton({ onConfirm, open, onOpenChange }: ClearAllButton
           Clear
         </button>
       </AlertDialogTrigger>
-      {/* The panel is the same glass as the two content dialogs, at the same
-          2.25rem radius. `signal-red` is licensed for destructive confirmation,
-          so the committing button takes it — the vendored default put the
-          product's interactive blue on "delete everything". */}
+      {/* The overrides give the vendored dialog the same glass and 2.25rem
+          radius as the app's other dialogs. */}
       <AlertDialogContent className="glass-panel dialog-panel gap-5 rounded-[2.25rem] border-0 p-6 text-foreground data-[size=default]:sm:max-w-md sm:p-8">
         <AlertDialogHeader className="gap-2 place-items-start text-left">
           <AlertDialogTitle className="text-xl font-light tracking-tight">

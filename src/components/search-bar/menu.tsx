@@ -158,9 +158,8 @@ function SectionRenderer({ section, ...props }: { section: MenuSection } & MenuP
 }
 
 /**
- * The two states where the panel would otherwise be blank. `m-auto` centres it
- * in the tall mobile overlay and collapses to nothing in the desktop dropdown,
- * which sizes to its content.
+ * The two states where the panel would otherwise be blank. `m-auto` centres the
+ * block in the scroll area instead of pinning it to the top.
  */
 function MenuEmpty({
   icon: Icon,

@@ -42,7 +42,7 @@ function whenSettled(assert: (rect: DOMRect) => void) {
 }
 
 beforeEach(() => {
-  // No network in this project: the geometry does not depend on a payload.
+  // No MSW in the browser project: the geometry does not depend on a payload.
   vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/search")) return new Response("[]", { status: 200 });

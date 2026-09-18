@@ -121,8 +121,6 @@ export function NowCard({ current, className }: NowCardProps) {
             />
           </span>
 
-          {/* Grows to the tile's free height, so the sentence stays under the
-              title and the readings sit on the bottom edge. */}
           <span className="relative flex flex-1 flex-col justify-between gap-5 sm:flex-row sm:items-center sm:gap-10 md:flex-col md:items-stretch md:gap-5">
             <span className="block text-2xl leading-tight font-light text-balance sm:flex-1 md:my-auto md:flex-initial xl:my-0">
               {sentence}
@@ -181,8 +179,7 @@ function NowDialog({
         isNight && "night",
       )}
     >
-      {/* The title clears the close control's 36px pane rather than running
-          under it, and the rule is what the rows scroll beneath. */}
+      {/* The end padding clears the close control's 36px pane. */}
       <DialogHeader className="border-b border-foreground/10 px-6 pt-6 pe-16 pb-5 text-left sm:px-8 sm:pt-8 sm:pe-20">
         <DialogTitle className="text-xl font-light tracking-tight text-balance">
           {sentence}

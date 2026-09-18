@@ -15,6 +15,13 @@ interface WeatherResultProps {
   onSelectCity: (intent: CitySelectionIntent) => Promise<string | null>;
 }
 
+/**
+ * Picks the card grid, the skeleton, or one of the result states.
+ *
+ * Only `quota_exceeded` and a `network` / `upstream` failure with no data take
+ * the screen over. Every other error falls through to the previous city's card,
+ * which `keepPreviousData` leaves in `data`, or to the empty state.
+ */
 export function WeatherResult({
   query,
   activeQuery,
