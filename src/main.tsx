@@ -12,7 +12,7 @@ if (!rootElement) {
 }
 
 // Seed the URL before React mounts, so the app only sees the URL-driven path.
-// `replaceState` keeps the back stack clean. See docs/rfcs/007-url-driven-city.md.
+// `replaceState` keeps the back stack clean.
 const bootstrapUrl = new URL(window.location.href);
 if (!bootstrapUrl.searchParams.get("city")) {
   const last = getHistorySnapshot()[0];

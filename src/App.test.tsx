@@ -15,13 +15,13 @@ function renderApp() {
 }
 
 describe("App (smoke)", () => {
-  it("renders the mark and the inviting empty state", () => {
+  it("renders the wordmark and the empty state", () => {
     renderApp();
     expect(screen.getByRole("heading", { name: "air", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /what's the weather/i })).toBeInTheDocument();
   });
 
-  it("closed, the bar is a nav carrying the trigger, the unit switch and no field", () => {
+  it("shows the search trigger and the unit switch, and no field, while closed", () => {
     renderApp();
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
