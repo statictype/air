@@ -15,10 +15,6 @@ body,
   min-height: 100vh;
 }
 
-/*
- ---break---
- */
-
 @theme inline {
   --font-sans: "Work Sans", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -72,10 +68,6 @@ body,
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
-
-/*
- ---break---
- */
 
 :root {
   --background: oklch(0.9750 0.0180 235.0000);
@@ -229,8 +221,7 @@ html, body { background: oklch(0.97 0.02 230); }
     0 0 0 3px oklch(0.65 0.1 250 / 0.12);
 }
 
-/* The first-run paths take the search field's material and dimensions: they are
-   the same act, moved to the middle of the page. */
+/* Repeats `.search-surface`'s material and dimensions; keep the two in step. */
 .start-action {
   background: oklch(1 0 0 / 0.45);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
@@ -308,7 +299,6 @@ html, body { background: oklch(0.97 0.02 230); }
   padding: var(--tile-pad);
 }
 
-/* Every tile reads its padding from `--tile-pad`, so they cannot drift apart. */
 @media (width >= 40rem) {
   .bento-tile { --tile-pad: 1.5rem; }
 }
@@ -350,11 +340,9 @@ html, body { background: oklch(0.97 0.02 230); }
   }
 }
 
-/* Sun and moon share one geometry per cascade; the moon differs by hue. No
-   browser interpolates a gradient, so the two skies are stacked layers that
-   crossfade — the same technique as `.sky::before` / `.sky::after`. The tile
-   itself carries no background, so each sky composites over the page sky alone,
-   whichever is showing. `.astro-content` holds the card above both. */
+/* No browser interpolates a gradient, so the two skies are stacked pseudo-element
+   layers that crossfade. The tile carries no background of its own, so whichever
+   sky is showing composites over the page sky. */
 .tile-astro,
 .tile-astro-moon {
   background: transparent;
@@ -396,7 +384,7 @@ html, body { background: oklch(0.97 0.02 230); }
     linear-gradient(170deg, oklch(0.9 0.05 280 / 0.8), oklch(0.97 0.012 250 / 0.85));
 }
 
-/* z-index only; each of these already carries its own position. */
+/* z-index only — every element with this class sets its own position. */
 .astro-content {
   z-index: 1;
 }
@@ -428,7 +416,6 @@ html, body { background: oklch(0.97 0.02 230); }
   --sev-moderate: oklch(0.820 0.150 68);
   --sev-moderate-on: oklch(0.18 0.040 50);
 
-  /* Night lifts on hover instead of deepening, as .tile-now does. */
   --alert-plate-near: oklch(0.245 0.014 252 / 0.92);
   --alert-plate-far: oklch(0.165 0.020 258 / 0.60);
   --alert-plate-near-lit: oklch(0.285 0.016 252 / 0.94);
@@ -523,23 +510,18 @@ html, body { background: oklch(0.97 0.02 230); }
 
 .hero-day {
   background:
-    /* the lamp — #00C4FF, held well under full strength so it lifts the corner
-       without bleaching it */
     radial-gradient(118% 128% at 96% 98% in oklab,
       oklch(0.7669 0.1510 228.87 / 0.46) 0%,
       oklch(0.7669 0.1510 228.87 / 0.42) 18%,
       oklch(0.7669 0.1510 228.87 / 0.22) 50%,
       oklch(0.7669 0.1510 228.87 / 0.06) 78%,
       oklch(0.7669 0.1510 228.87 / 0) 100%),
-    /* #1866E1, keeps the opposite bottom corner off the flat base */
     radial-gradient(88% 80% at 6% 100% in oklab,
       oklch(0.5411 0.2013 260.04 / 0.40) 0%,
       oklch(0.5411 0.2013 260.04 / 0.35) 22%,
       oklch(0.5411 0.2013 260.04 / 0.14) 58%,
       oklch(0.5411 0.2013 260.04 / 0.03) 82%,
       oklch(0.5411 0.2013 260.04 / 0) 100%),
-    /* base. The light end is #0080FF exactly, and it holds most of the card —
-       the deep end only takes the upper-left corner, under the city name. */
     linear-gradient(135deg in oklab,
       oklch(0.4550 0.1850 264.00) 0%,
       oklch(0.6152 0.2108 256.10) 100%);
@@ -591,9 +573,8 @@ html, body { background: oklch(0.97 0.02 230); }
     0 16px 32px -10px oklch(0 0 0 / 0.4);
 }
 
-/* The nav is one surface in two states. Resting it is chrome at the edge of the
-   viewport and casts the tile shadow; open it sits over content being read and
-   takes the overlay reach. Four rules, because there are two cascades. */
+/* One surface in two states, resting and open, written out in both cascades —
+   hence four rules. */
 .nav-surface {
   background: linear-gradient(180deg, oklch(1 0 0 / 0.82), oklch(1 0 0 / 0.64));
   -webkit-backdrop-filter: blur(24px) saturate(155%);
@@ -649,8 +630,6 @@ html, body { background: oklch(0.97 0.02 230); }
   opacity: 1;
 }
 
-/* The nav's ink: the icon glyphs and the unit letters. Day tracks --primary,
-   night is its own ladder. */
 .nav-icon-button {
   color: color-mix(in oklab, var(--primary) 85%, transparent);
 }
@@ -759,7 +738,6 @@ html, body { background: oklch(0.97 0.02 230); }
 .astro-body-set  { animation: astro-body-set  0.32s cubic-bezier(0.55, 0.085, 0.68, 0.53) both; }
 .astro-body-rise { animation: astro-body-rise 0.62s cubic-bezier(0.33, 1, 0.68, 1) both; }
 
-/* The arc stays; it is the track. Only its colour follows the body. */
 .astro-arc  { transition: opacity 0.42s ease; }
 .astro-node { transition: fill 0.42s ease; }
 
@@ -795,9 +773,8 @@ html, body { background: oklch(0.97 0.02 230); }
 
   --hour-step-size: 2.25rem;
 
-  /* One button wide, so a step button never covers a reading at full ink, and
-     under a column wide, so no reading is dimmed to the point of reading as
-     unavailable rather than as continuing. */
+  /* One step button wide: enough to cover the button, less than a column, so no
+     whole reading is dimmed. */
   --hour-fade-w: var(--hour-step-size);
   --hour-fade-l: 0px;
   --hour-fade-r: 0px;
@@ -1074,15 +1051,10 @@ html, body { background: oklch(0.97 0.02 230); }
   background: oklch(1 0 0 / 0.12);
 }
 
-/* ---------------------------------------------------------------------------
-   Dialogs
-
-   Three dialogs share this chrome: the Now readings panel, the alerts panel,
-   and the clear-history confirmation. All three portal onto <body>, outside
-   the app root, so the night cascade reaches them from <html> — App.tsx
-   mirrors the class there.
-
-   --------------------------------------------------------------------------- */
+/* Three dialogs share this chrome: the Now readings panel, the alerts panel and
+   the clear-history confirmation. All three portal onto <body>, outside the app
+   root, so the night cascade reaches them from <html> — App.tsx mirrors the
+   class there. */
 
 :root {
   --dialog-close-fill: oklch(1 0 0 / 0.42);
@@ -1189,10 +1161,8 @@ html, body { background: oklch(0.97 0.02 230); }
   outline-offset: 2px;
 }
 
-/* The scrolling body. Same edge-fade idiom as `.hour-fade`: the mask reads a
-   data attribute the component sets only while content sits past the edge, so
-   a panel that fits shows no fade and a panel that overflows never slices a
-   line of text against the rounded corner. */
+/* Same edge-fade idiom as `.hour-fade`: the mask reads a data attribute that
+   `DialogScroll` sets only while content sits past the edge. */
 .dialog-scroll {
   --dialog-fade-b: 0px;
   -webkit-mask-image: linear-gradient(

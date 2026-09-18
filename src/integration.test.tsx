@@ -115,8 +115,7 @@ const londonSuggestion: SuggestionItem = {
   url: "london-greater-london-united-kingdom",
 };
 
-/** Searching now starts with a trigger click — there is no field in the closed
- *  bar. Both triggers render the same panel; only initial focus differs. */
+/** The closed bar carries no field, so searching starts with a trigger click. */
 async function openSearch(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Search" }));
   return screen.getByRole("searchbox");
@@ -368,7 +367,7 @@ describe("air (integration)", () => {
     expect([weatherCalls, forecastCalls]).toEqual(callsBefore);
   });
 
-  it("leaves every classified word and the needle angle where they were", async () => {
+  it("keeps the classified words and the needle angle unchanged across a unit switch", async () => {
     const user = userEvent.setup();
     renderAppAt("/?city=London");
 
@@ -387,7 +386,7 @@ describe("air (integration)", () => {
     expect([sentence().length, beaufort().length, band().textContent, needle()]).toEqual(before);
   });
 
-  it("dashes a reading whose pair a stale body never carried", async () => {
+  it("renders an em dash for a reading the payload does not carry", async () => {
     const stale = structuredClone(londonCurrent) as unknown as {
       current: Record<string, unknown>;
     };
