@@ -14,6 +14,10 @@ export interface UseSuggestionsResult {
   isPending: boolean;
 }
 
+/**
+ * Autocomplete for the search field. `isLoading` covers the request; `isPending`
+ * covers the debounce, where the input is long enough but the fetch has not started.
+ */
 export function useSuggestions(input: string): UseSuggestionsResult {
   const debounced = useDebouncedValue(input, DEBOUNCE_MS);
   const normalized = normalizeQuery(debounced) ?? "";

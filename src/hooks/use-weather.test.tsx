@@ -160,7 +160,7 @@ describe("useWeatherForecast", () => {
     expect(result.current.fetchStatus).toBe("idle");
   });
 
-  it("returns the shaped DTO on success", async () => {
+  it("returns the forecast DTO on success", async () => {
     server.use(http.get("/api/weather/forecast", () => HttpResponse.json(forecastFixture)));
 
     const { result } = renderHook(() => useWeatherForecast("London"), {

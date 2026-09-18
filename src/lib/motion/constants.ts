@@ -1,9 +1,6 @@
 /**
- * Springs and durations for the nav bar ↔ panel transition.
- *
- * Replaces the four inline configs that lived in `search-bar.tsx` and
- * `menu.tsx`. Values are the starting point, not a contract — the geometry in
- * `components/nav/contract.ts` is what tests assert.
+ * Springs and durations for the nav bar ↔ panel transition. Nothing asserts
+ * these; the tests read the geometry in `components/nav/contract.ts`.
  */
 
 export interface Spring {
@@ -21,16 +18,9 @@ export interface TimedSpring {
   bounce: number;
 }
 
-/** Bar → panel.
- *
- *  Was `stiffness: 360, damping: 38, mass: 1` — a damping ratio of 1.0014, so
- *  critically damped. That profile covers 56% of the travel in the first 100ms
- *  and needs another 320ms for the last 2%: a phone-width open moves 440 of its
- *  786px before the eye can track it, then creeps. Reads as a snap.
- *
- *  Stated as a settling time instead, the same travel is 46% done at 100ms and
- *  at rest by 650ms. `bounce` 0.2 passes the target by 12px at phone width,
- *  which is what reads as settling rather than stopping. */
+/** Bar → panel. The travel is 46% done at 100ms and at rest by 650ms.
+ *  `bounce` 0.2 passes the target by 12px at phone width, which is what reads
+ *  as settling rather than stopping. */
 export const EXPAND_SPRING: TimedSpring = {
   type: "spring",
   duration: 0.62,
@@ -83,9 +73,8 @@ export const BAR_FADE_IN = { duration: 0.18, delay: 0.1 } as const;
  *
  *  The container's background is opaque from the first frame, so any delay here
  *  is time the viewer spends looking at a blank sheet. At phone width the box
- *  is 90% grown by 0.2s; the delay was 0.06 and the regions ran 0.3s, which
- *  left about 0.25s of empty surface. The last region now lands at
- *  0.02 + 0.03 + 0.2 = 0.25s, with the box rather than behind it. */
+ *  is 90% grown by 0.2s, and the last region lands at
+ *  0.02 + 0.03 + 0.2 = 0.25s — with the box rather than behind it. */
 export const PANEL_REGION_DELAY = 0.02;
 export const PANEL_STAGGER = 0.03;
 export const PANEL_REGION_IN = {

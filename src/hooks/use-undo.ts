@@ -14,8 +14,11 @@ export interface UseUndoReturn<T> {
 
 const DEFAULT_TIMEOUT_MS = 5000;
 
+/** Holds removed items for `timeoutMs` so a toast can offer Undo before the removal is final. */
 export function useUndo<T>(timeoutMs: number = DEFAULT_TIMEOUT_MS): UseUndoReturn<T> {
   const [pending, setPending] = useState<PendingRemoval<T> | null>(null);
+  // `undo` runs from a toast callback captured in an earlier render, so it reads
+  // the ref instead of the `pending` value that closure captured.
   const pendingRef = useRef<PendingRemoval<T> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

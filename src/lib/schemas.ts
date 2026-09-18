@@ -1,7 +1,7 @@
 /**
  * Nothing in `src/api`, `src/hooks`, or `src/components` may value-import from
- * this file — type imports only, so zod stays out of the client bundle.
- * See docs/rfcs/008-zod-wire-boundaries.md.
+ * this file — type imports only, so zod stays out of the client bundle. ESLint
+ * enforces it.
  */
 
 import { z } from "zod";

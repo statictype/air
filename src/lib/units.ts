@@ -10,8 +10,9 @@ export function isUnitSystem(value: unknown): value is UnitSystem {
 
 const ABSENT: Measure = { text: "—", value: "—", suffix: "", spoken: "—" };
 
-/** A browser can hold a body from before the pairs existed — `max-age` is 10 min
- *  on `current` and 1 h on `forecast`. Every call site goes through this. */
+/** A cached body can be missing the pair — `max-age` is 10 min on `current` and
+ *  1 h on `forecast`, so a browser can hold one shaped by an older DTO. Every
+ *  call site reads through here rather than indexing the pair itself. */
 export function read(pair: MeasurePair | null | undefined, system: UnitSystem): Measure {
   return pair?.[system] ?? ABSENT;
 }

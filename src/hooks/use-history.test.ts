@@ -27,7 +27,7 @@ describe("addHistoryItem (pure)", () => {
     expect(result[0]?.query).toBe("London");
   });
 
-  it("dedupes by case-insensitive query and moves the existing entry to the top", () => {
+  it("dedupes case-insensitively, replacing the existing entry at the top", () => {
     const seed: HistoryItem[] = [
       { id: "a", query: "Paris", displayName: "Paris, FR", addedAt: 1 },
       { id: "b", query: "London", displayName: "London, UK", addedAt: 2 },
@@ -163,7 +163,7 @@ describe("useHistory", () => {
     expect(result.current.history).toEqual([]);
   });
 
-  it("keeps only well-formed items out of a stored array", () => {
+  it("drops malformed entries when reading the stored array", () => {
     const { result } = renderHook(() => useHistory());
 
     act(() => {
