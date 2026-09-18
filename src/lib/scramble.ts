@@ -96,8 +96,8 @@ function finish(job: Job): void {
   jobs.delete(job);
 }
 
-/** Reads the clock rather than taking the frame timestamp, so the schedule is
- *  on the same origin as `job.start` wherever the two are not guaranteed to be. */
+/** Reads `performance.now()` rather than the rAF timestamp, so the schedule
+ *  shares a time origin with `job.start`. */
 function tick(): void {
   const now = performance.now();
   const stepped = now - lastStep >= STEP_MS;

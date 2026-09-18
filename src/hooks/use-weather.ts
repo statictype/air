@@ -17,8 +17,8 @@ const CLIENT_TIERS: Record<WeatherTier, ClientTier> = {
     refetchOnWindowFocus: true,
   },
   forecast: {
-    staleTime: 30 * 60_000, // 30 min
-    gcTime: 60 * 60_000, // 1 h
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
     refetchOnWindowFocus: false,
   },
 };
@@ -43,6 +43,9 @@ function useWeatherTier<T>(
     queryKey: ["weather", tier, normalized],
     queryFn: () => fetchTier<T>(tier, normalized),
     enabled,
+    // Until a new key settles, `isSuccess` is true while `data` still holds the
+    // previous city's payload. Anything correlating `data` with the current key
+    // has to gate on `isPlaceholderData` too.
     placeholderData: keepPreviousData,
     staleTime: config.staleTime,
     gcTime: config.gcTime,

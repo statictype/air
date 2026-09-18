@@ -19,7 +19,7 @@ describe("read", () => {
     expect(read(speed(24, 15), "imperial").text).toBe("15 mph");
   });
 
-  it("dashes rather than throwing when a browser holds a pre-pair body", () => {
+  it("dashes rather than throwing when the pair is absent", () => {
     expect(read(undefined, "metric")).toEqual({
       text: "—",
       value: "—",

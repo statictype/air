@@ -3,6 +3,7 @@ import { isUnitSystem, type UnitSystem } from "@/lib/units";
 
 export const UNIT_STORAGE_KEY = "air:units";
 
+// United States, Liberia, Myanmar.
 const IMPERIAL_REGIONS = new Set(["US", "LR", "MM"]);
 
 function deriveFromLocale(): UnitSystem {

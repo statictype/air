@@ -10,6 +10,10 @@ export interface UseHistoryReturn {
   restore: (items: HistoryItem[]) => void;
 }
 
+/**
+ * Recent searches. Every consumer reads one shared snapshot, persisted to
+ * `localStorage` and updated across tabs.
+ */
 export function useHistory(): UseHistoryReturn {
   const history = historyStore.use();
 
