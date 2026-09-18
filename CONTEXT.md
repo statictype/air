@@ -1,230 +1,126 @@
-# CONTEXT — ubiquitous language
+# Ubiquitous language
 
-Domain terms used in code, docs, and conversation. Each entry is short on
-purpose; follow the pointers for the full story.
+The terms this codebase uses in names, comments and docs. One meaning each. If
+you need the mechanism rather than the definition, follow the pointer —
+[`docs/architecture.md`](./docs/architecture.md) holds the contracts,
+[`docs/air-comfort.md`](./docs/air-comfort.md) the labeling vocabulary.
 
----
+## Data
 
-## Data model
+**Weather tier** — one of two independently cacheable slices of the weather
+payload, `current` and `forecast`. The `WeatherTier` union in `src/lib/tiers.ts`
+names them; `SERVER_TIERS` and `CLIENT_TIERS` are both records keyed by it.
 
-**Weather tier** — one of two independently-cacheable slices of the
-weather payload: `current` and `forecast`. Defined once as the
-`WeatherTier` union in `src/lib/tiers.ts`; both server-side
-`SERVER_TIERS` (`src/worker/tiers.ts`) and client-side `CLIENT_TIERS`
-(`src/hooks/use-weather.ts`) are records keyed by it. Adding or
-renaming a tier is a one-row change on each side. See RFC 001.
+**Measure pair** — `{ metric, imperial }`, each side a
+`{ text, value, suffix, spoken }`. Every display quantity crosses the wire as
+one. `read(pair, system)` picks a side and returns an em dash when the pair is
+absent.
 
-**Active city** — the city currently rendered. Driven entirely by the
-URL's `?city=` query param, written only by `selectCity` (see **City
-selection**) and read via `useSearchParam("city")`. Every weather fetch
-keys off this; no internal "current city" state exists. Bootstrapped
-from history on cold load via `replaceState` in `main.tsx`. See RFC 007.
+**Normalized query** — a city query trimmed, lowercased, and with internal
+whitespace collapsed. Produced by `normalizeQuery` in `src/lib/query.ts` and
+used as both the Worker's edge-cache key and the client's TanStack Query key.
 
-**Normalized query** — the canonical form of a user's city query:
-trimmed, lowercased, internal whitespace collapsed. Produced by
-`normalizeQuery` in `src/lib/query.ts`. Used as both the edge-cache key
-on the worker and the TanStack Query key on the client, so the two
-sides cannot drift. `London` / `london` / `LONDON ` / `london` all
-resolve to one cache entry per tier.
+**Resolved location** — the `id:N` string both weather tiers fetch, produced by
+`resolveLocation` from a folded query and cached 24 h. Distinct from the query,
+which is what the viewer typed.
 
-**Suggestion** — an autocomplete item from `/api/search`. Distinct from
-a **history item** (a city the user actually selected). Suggestions are
-fetched debounced (300 ms) at a 3-char minimum via `useSuggestions`.
+**Suggestion** — an autocomplete row from `/api/search`. Distinct from a history
+item, which is a city that was actually selected.
 
-**History item** — a previously-selected active city, persisted to
-`localStorage`. Stored as `{ query, displayName, ... }` so we can show
-"Berlin, Germany" rather than the raw query string the user typed.
+**History item** — a previously selected city, persisted to `localStorage` as
+`{ id, query, displayName, addedAt }`. `displayName` exists so the recent list
+can read `Berlin, Germany` rather than whatever string was typed.
 
----
+## State and flow
 
-## State + flow
+**Active city** — the city currently rendered. It lives in the URL's `?city=`
+parameter and nowhere else; `useSearchParam("city")` reads it and every weather
+fetch keys off it.
 
-**City selection** — turning a selection intent into the active city.
-`selectCity` (`src/lib/city-selection.ts`) is the only writer of
-`?city=`. It takes a `CitySelectionIntent` — `recent | suggestion |
-random | location | starter` — resolves it to a query, writes the URL,
-and returns what it committed, or `null` when the intent produced no
-city. Every intent resolves on a promise, including the four
-synchronous ones, so callers have one ordering to handle. The
-geolocation read, its ~100 m coarsening and both failure toasts live
-here; Sonner is hard-wired, as in **Reversible history**. The
-invariant: the query written to the URL and the query a caller waits
-for come from one call, so they cannot drift.
+**City selection** — turning an intent into the active city. `selectCity` in
+`src/lib/city-selection.ts` is the only writer of `?city=`. It takes a
+`CitySelectionIntent` — `recent | suggestion | random | location | starter` —
+resolves it to a query, writes the URL, and returns what it committed, or `null`
+when the intent produced no city.
 
-**Pending selection** — the nav panel's hold on a selected row
-(`src/components/nav/pending-selection.ts`). `Nav.commit` opens the
-hold with `query: null`, awaits `selectCity`, then patches the hold
-with the committed query, or drops it on `null`. `hasArrived` compares
-that query against the active city; until it is known it falls back to
-"the active city changed at all".
+**Pending selection** — the nav panel's hold on a selected row, in
+`src/components/nav/pending-selection.ts`. The panel stays open until the URL
+catches up with the selection and the query behind it settles.
 
-**History-commit** — the act of writing the just-fetched city into
-history after a successful weather response. Lives in the
-history-commit effect at `src/App.tsx:34–45`. The effect is the
-canonical victim of the **placeholder-data window** below.
+**Placeholder-data window** — the window between a query-key change and the new
+fetch resolving, during which `query.isSuccess` is `true` while `query.data`
+still holds the previous city's payload.
 
-**Placeholder-data window** — the window between a query-key change
-and the new fetch resolving, during which `query.isSuccess === true`
-but `query.data` still points at the **previous** city's payload (and
-`query.isPlaceholderData === true`). Any effect that correlates
-`query.data` with `activeQuery` during this window writes stale data
-under a fresh key. Rule: when gating on `isSuccess`, also gate on
-`!isPlaceholderData`. See `docs/architecture.md` gotchas.
+**Commit-on-success** — any effect that derives state from `query.data` once
+`isSuccess` flips. Every one must also gate on `!isPlaceholderData`. The
+history-commit effect in `App.tsx` is the only live instance.
 
-**Reversible history** — the destructive-action pattern composed by
-`useReversibleHistory` (`src/hooks/use-reversible-history.ts`): mutate
-→ stage for undo → fire toast → wire restore callback. Sealed inside
-the hook so App.tsx gets a single `removeWithUndo` /
-`clearAllWithUndo` per action. Sonner is hard-wired here and in
-`city-selection.ts`; nothing else in the app raises a toast. See
-RFC 010.
+**Reversible history** — the destructive-action pattern in
+`useReversibleHistory`: mutate, stage for undo, fire the toast, wire the restore
+callback. App.tsx gets one function per action. Sonner is hard-wired here and in
+`city-selection.ts`; nothing else in the app raises a toast.
 
-**Commit-on-success** — generic term for any effect that derives state
-from `query.data` once `query.isSuccess` flips true. All such effects
-in this codebase must also check `!query.isPlaceholderData` (see
-above). History-commit is the only live instance.
-
-**Persistent store** — a `localStorage`-backed `useSyncExternalStore`
-source, built by `createPersistentStore` in
-`src/lib/persistent-store.ts`. Three exist: history
-(`src/hooks/use-history/store.ts`), the unit system
-(`src/hooks/use-unit-system.ts`) and the first-run flag
-(`src/lib/first-run.ts`). An adapter supplies a key, a `decode` /
-`encode` pair and a `fallback`; the store owns the cached snapshot, the
-cross-tab `storage` listener filtered on that key, the failure policy —
-a corrupt or rejected value reads as absent and falls back, a failed
-write keeps the in-memory value — and the server snapshot, which is a
-separate option because the unit system serves `metric` while its
-client fallback derives from `navigator.language`'s region.
-`createSubscription` (`src/lib/external-store.ts`) is the listener
-primitive underneath.
-
----
+**Persistent store** — a `localStorage`-backed `useSyncExternalStore` source
+built by `createPersistentStore`. Three exist: history, the unit system, and the
+first-run flag.
 
 ## Errors
 
-**Kind** — a member of the closed error-union defined in
-`src/lib/errors.ts`: `invalid_query | not_found | quota_exceeded |
-upstream | network`. Every error the proxy emits or the client renders
-is tagged with a kind. `WEATHER_ERRORS` is the single table that maps
-each kind to its HTTP status and user-safe default message.
+**Kind** — a member of the closed union in `src/lib/errors.ts`:
+`invalid_query | not_found | quota_exceeded | upstream | network`. Every error
+the Worker emits or the client renders carries one.
 
-**Closed error union** — the principle that adding a new error mode is
-a one-row change to `WEATHER_ERRORS`, propagated by TypeScript through
-the worker, the frontend client, the retry policy, and the
-`WeatherResult` renderer. No vendor-specific kinds leak past the
-worker.
+**Vendor code** — a WeatherAPI.com numeric error code such as `1006` or `2007`,
+mapped to a kind by `UPSTREAM_CODE_TO_KIND` in `src/worker/weather-api.ts`.
+Unknown codes collapse to `upstream`, so no vendor-specific kind leaves the
+Worker.
 
-**Vendor code** — a WeatherAPI.com numeric error code (e.g. `1006`,
-`2007`). Mapped to a `kind` via `UPSTREAM_CODE_TO_KIND` in
-`src/worker/weather-api.ts`. Unknown codes collapse to `upstream`.
+## Vocabulary
 
-**Fatality** — per-tier policy for whether a failed fetch takes over
-the UI. `current` is fatal: a failure replaces the result area with a
-retry CTA. `forecast` is fatal-by-omission via TanStack Query state.
-No non-fatal tier remains, so retry policy lives entirely in
-`src/lib/query-client.ts`; `CLIENT_TIERS` carries no per-tier `retry`
-override.
+**Thermal label** — one of nine labels driven by feels-like temperature, from
+`Very cold` to `Dangerously hot`.
 
----
+**Air label** — one of seven labels driven by dew point, from `Very dry` to
+`Very humid`, plus the damp override.
 
-## UI surfaces
+**Damp override** — when `tempC < 12` and `humidity > 80`, strict on both, the
+air label becomes `Damp` whatever the dew point says.
 
-**Hero** — `HeroCard` (`src/components/weather/hero-card.tsx`). Carries
-the whole answer: city, temperature, and the comfort sentence
-(`"Warm and slightly humid"`) at one shared type scale, plus the
-condition icon + text a rung below and a Beaufort wind / rain-chance
-footer. Consumes the two-axis labeler in `src/lib/air-comfort.ts`.
+**Comfort sentence** — the joined pair, `Warm and slightly humid`. `Comfortable`
+is the one evaluative word and is spoken only where the thermal band licenses
+it.
 
-**Peak scale** — the single type scale the hero's three co-equal
-elements share, declared once as `PEAK` in `hero-card.tsx`. City,
-temperature, and comfort sentence are the only things that may use it;
-sizing any of them independently is what collapses the hierarchy.
-Lower rungs step down by size, never by opacity.
+## Surfaces
 
-**Metrics card** — `AirComfortCard`
-(`src/components/weather/air-comfort-card.tsx`). Renders the raw
-numbers behind the hero's sentence — dew, humidity, cloud, wind,
-visibility. Does **not** consume the two-axis labeler; intentionally
-separate.
+**Hero** — `HeroCard`. City, temperature, condition, and the location's local
+date and time. It is the LCP element and paints from the `current` tier alone.
 
-**Thermal label** — one of nine labels driven by feels-like
-temperature: `Very cold | Cold | Chilly | Cool | Mild | Warm | Hot |
-Very hot | Dangerously hot`. See RFC 012.
+**Now card** — `NowCard`. The comfort sentence, then the readings behind it.
 
-**Air label** — one of seven labels driven by dew point: `Very dry |
-Dry | Slightly dry | Comfortable | Slightly humid | Humid | Very
-humid`, plus the **damp override** below. See RFC 012.
+**Nav** — one `position: fixed` element that is the bar when closed and the
+search panel when open. **Placement** is its resolved position for a viewport
+width: the `NavPlacement` record of bar edge, panel mode and drag axis.
 
-**Damp override** — when `tempC < 12 AND humidity > 80` (strict on
-both), the air label becomes `Damp` regardless of dew point. Captures
-the cold-damp sensation that low absolute humidity readings would
-otherwise mask.
+**Menu model** — the pure `buildMenuModel` ladder in
+`src/components/search-bar/menu-model.ts`: recents, keep-typing, suggestions,
+no-results, actions. `<Menu>` renders it; breakpoint differences are CSS, not a
+variant prop.
 
-**Air-comfort palette** — removed. The two axes once drove an OKLCH
-tint per card, single-sourced in `src/lib/air-comfort-palette.ts`,
-injected at startup, and tuned through a `/moods` editor. All of it is
-gone: the palette module, the editor, the `.ac-{bucket}` custom
-properties, and the `airComfortStyle` / `airComfortInk` helpers. Air
-comfort is expressed in words only. Day and night still swap the sky
-and the tile surfaces — that cascade is unrelated and stays.
-
-**Label vocabulary** — the two small-uppercase label classes in
-`src/index.css`: `.label-section` (tile headers — "Air", "Hourly",
-"Local time") and `.label-sub` (subordinate labels inside a tile —
-"Sunrise", "Dew", the pressure axis endpoints). They replaced 8
-near-identical inline variants that had drifted across 3 sizes, 5
-tracking values, and 6 opacities. Hierarchy comes from the size step
-only: both sit at 70% foreground because anything fainter fails WCAG AA
-against the day tile gradients (40–60% measures 2.3–4.1:1). Add a label
-by using one of these two, not by writing a new inline treatment.
-
-**Search overlay** — the mobile presentation of the search menu: a
-glass backdrop below the page header, plus a sliding Cancel button.
-Same `<Menu>` component renders the desktop dropdown — CSS-driven, no
-variant prop. See RFC 011.
-
-**Search menu state machine** — `useSearchMenu`
-(`src/components/search-bar/use-search-menu.ts`). Owns input value,
-focus, and selected key for the search bar. Every row reports through
-one channel, `onSelect(item)`; the hook never acts on a selection and
-never closes on one. `buildMenuModel` (`menu-model.ts`) is the pure
-branching ladder it consumes (recents / keep-typing / suggestions /
-no-results / actions), tested in isolation; `itemIntent` in the same
-file maps a row to the intent `selectCity` takes. See RFC 011.
-
----
+**Label vocabulary** — the two small-uppercase classes in `src/index.css`.
+`.label-section` for tile headers, `.label-sub` for subordinate labels inside a
+tile. They differ by size alone and both sit at 70% foreground, which is the
+floor that holds against the day tile gradients. Add a label by using one of
+them, not by writing a third inline treatment.
 
 ## Infrastructure
 
-**Edge cache** — Cloudflare's `caches.default` Cache API, used by the
-worker to memoize successful weather responses per tier (10 min /
-1 h). Keyed by `buildCacheKey(path, normalizedQuery)`.
+**Edge cache** — Cloudflare's `caches.default`, used by the Worker to memoize
+successful weather responses per tier, keyed by
+`buildCacheKey(path, normalizedQuery)`.
 
-**Wire boundary** — the network seam between worker and frontend. DTOs
-are defined once in `src/lib/schemas.ts` as zod schemas; the worker
-value-imports them to validate upstream responses, the frontend
-type-imports only. Zod is tree-shaken out of the client bundle and
-banned by ESLint in `src/{api,hooks,components}`. See RFC 008.
+**Cache version** — the `CACHE_VERSION` string in `src/worker/cache.ts`,
+included in every edge-cache key. Bump it whenever a DTO shape changes.
 
-**Handler factory** — `createTierHandler(tier)` in
-`src/worker/tiers.ts`. Returns the request handler for a given tier;
-the per-tier knobs (TTL, fetch fn, optional extras) are a single
-`SERVER_TIERS[tier]` row. Three near-identical handler files were
-collapsed into this factory.
-
-**Cache version** — the `CACHE_VERSION` string in
-`src/worker/cache.ts`. Included in every edge-cache key. **Bump it
-whenever a DTO shape changes**, or previously-cached entries (valid
-against the old schema) will render against new client expectations
-with undefined fields. No automated guard exists.
-
----
-
-## Pointers
-
-- Architecture overview: `docs/architecture.md`
-- Design decisions (RFCs): `docs/rfcs/`
-- ADRs (smaller / one-off): `docs/decisions/`
-- Testing strategy: `docs/testing.md`
-- Project instructions: `CLAUDE.md`
+**Wire boundary** — the network seam between Worker and frontend. DTOs are
+defined once in `src/lib/schemas.ts`; the Worker value-imports the schemas, the
+frontend type-imports only.

@@ -1,147 +1,298 @@
 # Architecture
 
+The README covers the request path end to end. This file covers the module
+layout, the contracts that span more than one file, and the traps.
+
 ## Module layout
 
 ```
 src/
-├── worker.ts              # Worker entry: dispatches /api/* routes, falls through to ASSETS
-├── worker/                # Backend (Cloudflare Worker)
-│   ├── tiers.ts              # SERVER_TIERS table (ttl/fetch) + createTierHandler factory — one row per weather tier
-│   ├── search-handler.ts     # GET /api/search              (autocomplete, no edge cache — `useSuggestions` keeps a 60 s client-side stale window)
-│   ├── weather-api.ts        # Upstream client + DTO shaping + error mapping
-│   ├── locate.ts             # Query → upstream location id, resolved once for both tiers (RFC 013)
-│   ├── fold.ts               # ASCII folding for the upstream match + diacritic restoration for display
-│   ├── format.ts             # temperature / speed / distance / pressure → MeasurePair
-│   ├── precip.ts             # Precipitation pairs + the joint null decided for both systems
-│   ├── air-comfort.ts        # Two-axis (thermal × air) labeler + beaufort — reads canonical °C / kph (RFC 012)
-│   ├── cache.ts              # Cache API helpers (per-endpoint TTL)
-│   ├── respond.ts            # Shared JSON / cache-header response builders
-│   ├── errors.ts             # WeatherApiError + upstream-code → kind mapping
-│   └── types.ts              # Env binding type
-├── api/                   # Frontend API client
-│   ├── weather.ts         # fetch wrappers (current / forecast / search) — throws WeatherClientError
-│   └── types.ts           # Type-only re-exports from @/lib/schemas + SuggestionItem
+├── worker.ts                 Worker entry: routes /api/*, falls through to ASSETS
+├── worker/
+│   ├── tiers.ts              SERVER_TIERS table + createTierHandler(tier)
+│   ├── search-handler.ts     GET /api/search
+│   ├── weather-api.ts        Upstream client, zod validation, DTO shaping
+│   ├── locate.ts             Query → upstream location id, resolved once per city
+│   ├── fold.ts               ASCII folding for the match, diacritic restoration for display
+│   ├── format.ts             Temperature / speed / distance / pressure → MeasurePair
+│   ├── precip.ts             Precipitation pairs, and the joint zero both systems share
+│   ├── air-comfort.ts        Thermal × air labeler, and the Beaufort word
+│   ├── alerts.ts             Severity normalization, sort, and cap
+│   ├── cache.ts              Cache API helpers and the TTL constants
+│   ├── respond.ts            JSON error responses
+│   ├── errors.ts             WeatherApiError
+│   └── types.ts              Env binding, ErrorResponse, DTO re-exports
+├── lib/                      Imported by both sides
+│   ├── schemas.ts            Zod DTOs — the wire boundary
+│   ├── errors.ts             Error table: kind ↔ status ↔ default message
+│   ├── tiers.ts              WeatherTier union + route paths
+│   ├── units.ts              UnitSystem union + read(pair, system)
+│   ├── query.ts              normalizeQuery, shared by both cache keys
+│   ├── query-client.ts       TanStack Query defaults and the retry policy
+│   ├── clock.ts              Every time and date the client renders
+│   ├── persistent-store.ts   localStorage over useSyncExternalStore
+│   ├── external-store.ts     The listener primitive underneath it
+│   ├── first-run.ts          The visited flag
+│   ├── city-selection.ts     Intent → query → ?city=
+│   ├── random-cities.ts      Pools for "surprise me" and the first-run row
+│   ├── moon.ts               Moon-phase SVG geometry
+│   ├── scramble.ts           The character churn played when a reading changes
+│   └── motion/               Springs and durations for the nav transition
+├── api/
+│   ├── weather.ts            fetch wrappers; throws WeatherClientError
+│   └── types.ts              Type-only re-exports + SuggestionItem
 ├── hooks/
+│   ├── use-weather.ts        CLIENT_TIERS + useWeather / useWeatherForecast
+│   ├── use-suggestions.ts    Autocomplete query, debounced
+│   ├── use-search-param.ts   ?city= as a useSyncExternalStore source
+│   ├── use-unit-system.ts    Persistent store, defaulted from the locale's region
+│   ├── use-history/          Reducer + persistent store + hook
+│   ├── use-undo.ts           Timeout-bounded pending removal
+│   ├── use-reversible-history.ts  useHistory + useUndo + the toast
 │   ├── use-debounced-value.ts
-│   ├── use-media-query.ts       # SSR-safe matchMedia subscription
-│   ├── use-search-param.ts      # ?city= as a useSyncExternalStore source
-│   ├── use-suggestions.ts       # Autocomplete query (debounced 300ms, 3-char min)
-│   ├── use-undo.ts              # Pending-removal state machine (generic primitive)
-│   ├── use-weather.ts           # Two TanStack Query hooks: current / forecast
-│   ├── use-reversible-history.ts # useHistory + useUndo + sonner toast, one call per action
-│   ├── use-unit-system.ts       # Persistent store over localStorage — °C/°F, defaulted from the locale's region
-│   └── use-history/             # Reducer + persistent store over localStorage
+│   └── use-media-query.ts
 ├── components/
-│   ├── nav/               # The bar and the panel it expands into — one node, two roles
-│   │   ├── index.tsx            # shell: role swap, focus return, Escape, scrim, hold-until-settled
-│   │   ├── contract.ts          # placement table + geometry + ids; what the browser suite asserts
-│   │   ├── nav-bar.tsx          # bar contents: the mark, search trigger, unit switch
-│   │   ├── nav-panel.tsx        # field + Menu — mounts and unmounts with open
-│   │   ├── nav-trigger.tsx      # icon button, aria-expanded / aria-controls
-│   │   ├── nav-unit-toggle.tsx  # °C / °F, along the bar's long axis, at every placement
-│   │   ├── pending-selection.ts # pure: does the panel hold, close, or show the error inline
-│   │   └── use-nav-placement.ts # three matchMedia subscriptions → NavPlacement
-│   ├── search-bar/        # Composite search input — single Input + useSearchMenu state machine + one Menu renderer
-│   │   ├── index.tsx            # public re-export
-│   │   ├── search-field.tsx     # composition: form + Input + inline error, rendered inside the panel
-│   │   ├── use-search-menu.ts   # state machine: value, selectedKey, commit; controlled open
-│   │   ├── menu-model.ts        # pure buildMenuModel(args) + types — the test surface for the branching ladder
-│   │   ├── menu.tsx             # one Menu component, CSS-driven across breakpoints (no variant prop)
-│   │   ├── constants.ts         # MIN_SUGGESTION_LENGTH
-│   │   ├── section-header.tsx   # shared label primitive
-│   │   └── clear-all-button.tsx # lazy-loaded alert-dialog confirmation
-│   ├── weather/           # The card grid — composed in grid.tsx
-│   │   ├── grid.tsx                  # row layout + calls useWeatherForecast
-│   │   ├── hero-card.tsx             # LCP card — city, condition, location-local date and time
-│   │   ├── air-comfort-card.tsx      # raw metrics tile — dew, humidity, cloud, wind, visibility
-│   │   ├── exposure-card.tsx         # UV + AQI tile
-│   │   ├── wind-card.tsx             # compass — speed, Beaufort, direction, bearing
-│   │   ├── pressure-card.tsx         # half-circle pressure gauge
-│   │   ├── astro-card.tsx            # sunrise / sunset / moon phase
-│   │   ├── forecast-card.tsx         # the future days upstream returns, 2 or 3 (today lives in the hero)
-│   │   ├── hourly-card.tsx           # next-24h strip
-│   │   ├── time-card.tsx             # location-local time
-│   │   └── condition-icon.tsx        # shared icon mapping
-│   ├── weather-result.tsx # State-machine container (drives off `current` only)
-│   ├── empty-state.tsx
-│   ├── error-state.tsx
-│   ├── quota-exceeded-state.tsx
-│   ├── weather-skeleton.tsx
-│   └── ui/                # shadcn/ui primitives (vendored — ESLint ignores this folder)
-├── lib/
-│   ├── schemas.ts         # Zod DTOs — single source of truth for the wire boundary (RFC 008)
-│   ├── errors.ts          # Error taxonomy table (kind ↔ status ↔ message)
-│   ├── tiers.ts           # WeatherTier union + route paths — wire-spanning identity for both tiers
-│   ├── query.ts           # normalizeQuery — shared by worker cache key + frontend query key
-│   ├── query-client.ts    # TanStack Query config + retry policy
-│   ├── units.ts           # UnitSystem union + read(pair, system) — wire-spanning identity for the toggle
-│   ├── clock.ts           # Every time and date the client formats, off the viewer's locale
-│   ├── persistent-store.ts # localStorage-backed useSyncExternalStore — history, units, first-run
-│   ├── external-store.ts  # createSubscription — listener bookkeeping under the persistent store
-│   ├── first-run.ts       # The visited flag, separating a first visit from a cleared history
-│   ├── city-selection.ts  # Intent → query → ?city=, the only writer of the active city
-│   ├── random-cities.ts   # Pool for the "surprise me" button
-│   └── utils.ts           # cn() helper
-├── test/                  # MSW server + setup (frontend project only)
-├── App.tsx                # Composition
-├── main.tsx               # Root, QueryClient, URL bootstrap from history (replaceState)
-└── integration.test.tsx   # End-to-end-ish coverage of the URL → fetch → render → history flow
+│   ├── nav/                  The bar and the panel it expands into
+│   │   ├── index.tsx             Role swap, focus return, Escape, scrim, hold
+│   │   ├── contract.ts           Placement table, geometry, element ids
+│   │   ├── nav-bar.tsx           Mark, search trigger, unit switch
+│   │   ├── nav-panel.tsx         Field + menu; mounts and unmounts with open
+│   │   ├── nav-layers.tsx        The bar and panel layers, and the mark
+│   │   ├── nav-unit-toggle.tsx   °C / °F
+│   │   ├── pending-selection.ts  Pure: hold, close, or show the error inline
+│   │   ├── use-dismiss-drag.ts   Drag-to-close
+│   │   └── use-nav-placement.ts  Three matchMedia subscriptions → NavPlacement
+│   ├── search-bar/           One input, one state machine, one menu renderer
+│   │   ├── use-search-menu.ts     Value, selected key, commit; controlled open
+│   │   ├── menu-model.ts         Pure buildMenuModel — the branching ladder
+│   │   ├── menu.tsx              Renders the model; CSS-driven across breakpoints
+│   │   └── search-field.tsx      Form + input + inline error
+│   ├── weather/              The card grid, composed in grid.tsx
+│   │   ├── hero-card.tsx         City, temperature, condition, local date and time
+│   │   ├── now-card.tsx          The comfort sentence and the readings behind it
+│   │   ├── hourly-card.tsx       The next 24 hours
+│   │   ├── forecast-card.tsx     One column per day upstream returns
+│   │   ├── astro-card.tsx        Sunrise, sunset, moon phase
+│   │   ├── exposure-card.tsx     UV and AQI
+│   │   ├── wind-card.tsx         Compass, speed, Beaufort, bearing
+│   │   ├── pressure-card.tsx     Half-circle gauge
+│   │   ├── alerts-card.tsx       Hazard warnings, absent when there are none
+│   │   └── condition-icon.tsx    Condition code → icon
+│   ├── weather-result.tsx    Chooses between grid, skeleton, error and empty
+│   ├── ui/                   Vendored shadcn primitives; ESLint ignores this folder
+│   └── …                     Empty, error and quota states; shared small pieces
+├── App.tsx                   Composition, and the history-commit effect
+├── main.tsx                  Root, QueryClient, URL bootstrap
+└── index.css                 Tailwind v4 theme, the day and night cascades
 ```
 
-## Design choices
+## API
 
-- **Single Cloudflare Worker hosts both surfaces.** The same `wrangler deploy` ships the SPA bundle (via the static-asset binding) and the three `/api/*` endpoints. The upstream API key lives only on the server side and never reaches the browser, and proxy + frontend share an origin so there's no CORS to wire up.
-- **Two-tier weather pipeline.** Rather than one fat `/api/weather` call, the worker exposes `current` and `forecast` as independent endpoints with TTLs sized to their volatility (10 min / 1 h). The hero paints from `current` alone (LCP-critical) and the forecast tier streams in inside the grid. Both tiers are defined as a single named concept (`WeatherTier` in `src/lib/tiers.ts`) — worker-side `SERVER_TIERS` and client-side `CLIENT_TIERS` tables are both keyed by this union so adding or renaming a tier is a one-row change on each side rather than a new file. A third `yesterday` tier shipped originally and was removed once the forecast card dropped its history column; RFC 001 describes the three-tier design as built.
-- **Shaped DTOs defined once, in zod.** `src/lib/schemas.ts` is the single source of truth for every wire shape. The worker value-imports the schemas to validate upstream responses; the frontend type-imports only, so zod's runtime is tree-shaken out of the client bundle. An ESLint rule blocks runtime zod imports in `src/{api,hooks,components}`. See RFC 008.
-- **Both unit systems arrive on the wire, pre-formatted.** Upstream returns imperial beside metric in one response, so the worker formats both and the client picks one. Every display quantity is a `MeasurePair` — `{ metric, imperial }`, each a `{ text, value, suffix, spoken }` — and switching is `read(pair, system)`, with no refetch, no remount and no arithmetic on the client. `read` returns a dash when a pair is absent, which is what a browser holding a pre-bump body (`max-age` is 10 min / 1 h) would otherwise turn into a property access on `undefined`. The raw `tempC` / `windKph` / `visibilityKm` family stopped shipping; what stayed a number is what feeds a colour, a bar width or an SVG angle (`pressureMb`, `uv`, `airQualityIndex`, `windDegree`, `humidity`, `cloud`). See issue 006.
-- **A classification reads one canonical field.** `airComfort` and `beaufort` moved to `src/worker/` with the formatters. The reason is not theoretical: the published Beaufort tables are independently rounded per unit — force 3 is 12–19 km/h and 8–12 mph — so any wind in the 1.6 km/h gap between 12 mph and 13 mph would read "Gentle breeze" to one viewer and "Moderate breeze" to another if each classified in their own display system. Toggling changes no word, no colour and no needle angle.
-- **The worker formats what comes from the payload; the client formats what comes from the clock.** The hero ticks every second, so a string baked into a body cached for 10 minutes cannot show the current time. Astro times, hourly labels and alert stamps _are_ payload — but two producers implementing one rule is how three date conventions accumulated in the first place, so all 11 sites moved to `src/lib/clock.ts` instead. The locale is `navigator.language`, and nothing else: `Intl` supplies the hour cycle, the day/month order and the weekday names, and the °C/°F toggle is not an input. It shipped keyed on the unit system first, which misfits the UK — metric-leaning and 12-hour — and every locale outside the two the table named. Hour cycle is read once per locale from `resolvedOptions().hourCycle`; `h11`/`h12` take `hour: "numeric"` (`3:45 PM`), the rest `hour: "2-digit"` (`15:45`, `00:05`). A locale `Intl` rejects falls back to the runtime default rather than dashing every string on the page.
-- **Units are a viewer preference, not view state.** The store is one of three persistent stores over localStorage, defaulted from `new Intl.Locale(navigator.language).region` (`US`, `LR`, `MM` → imperial). Not the URL: a shared `?city=` link should read in the recipient's units, not the sender's. The stored string indexes the DTO, so it is validated against the union on read rather than trusted.
-- **Edge cache with query normalization.** Each weather endpoint caches successful responses at the edge (10 min / 1 h), keyed on a normalized query (trimmed, lowercased, internal whitespace collapsed). `London`, `london`, `LONDON`, and `London ` all share one cache entry per endpoint. The autocomplete endpoint (`/api/search`) is intentionally not edge-cached — results are ephemeral and the client-side debounce + 60 s `staleTime` keeps the upstream call rate low. `normalizeQuery` in `src/lib/query.ts` is shared by the worker's cache key and the frontend's TanStack Query key so the two sides can't drift.
-- **The location is resolved once, in ASCII.** WeatherAPI matches its index in ASCII: `tromsø, norway` drops the accented token and answers on the tail, returning Norway, Iowa or Norway, Kansas depending on which caller asks, and the two tiers ran that match separately — one page could show Kansas conditions above Iowa sunrise times. A query is now folded (`src/worker/fold.ts`), resolved through `search.json` to a location id (`src/worker/locate.ts`, cached 24 h), and both tiers fetch `q=id:N`, which has no fuzzy step. A lone accented token is left alone: it matches, while `munchen` returns Münchenstein, Switzerland. Display names come back from upstream in ASCII, so the diacritics of the viewer's query are copied onto them — `Tromso` under `tromsø, norway` reads `Tromsø`, cased as upstream sent it. See RFC 013.
-- **Closed error union end-to-end.** Both worker and frontend client model errors as a discriminated union (`not_found | quota_exceeded | invalid_query | upstream | network`) defined in a single table (`src/lib/errors.ts`) that derives the kind ↔ status ↔ default-message mappings. Adding a kind is a one-row change that TypeScript propagates.
-- **Retry policy follows the error taxonomy.** `src/lib/query-client.ts` skips retry on the three user-meaningful kinds (`not_found`, `invalid_query`, `quota_exceeded`) so the UI reacts instantly. Transient network and upstream failures retry up to 2 times with exponential backoff capped at 5 s. `CLIENT_TIERS` (in `src/hooks/use-weather.ts`) carries no per-tier override, so this table is the whole policy.
-- **URL is the source of truth for the active city.** `?city=…` drives every fetch, and `selectCity` (`src/lib/city-selection.ts`) is its only writer: a `CitySelectionIntent` (`recent | suggestion | random | location | starter`) resolves to a query, the query is written to the URL, and the same string comes back to the caller. The nav panel's hold waits on that return value, so the query it waits for and the query in the URL are one derivation. `main.tsx` bootstraps the URL from history with `replaceState` on cold load, so returning users still see their last city — but from the first paint the URL accurately reflects what's on screen. Because every fetch is now legitimately the user's intent, there is no "silent fallback" — failed system fetches (network/upstream) take over the result area with a retry CTA. See RFC 007.
-- **Autocomplete is the debounced surface, weather fetches are not.** Suggestions (`/api/search`) fire 300 ms after idle typing, gated at 3 chars. The actual weather fetch only fires when the URL changes — selecting a suggestion, picking from recent history, geolocation, or "surprise me". TanStack Query dedupes identical keys and `placeholderData: keepPreviousData` keeps the previous successful card on screen while a new fetch is in flight.
-- **History via `useSyncExternalStore`.** localStorage is React's textbook "external store." Every `useHistory()` consumer subscribes to the same in-module pub/sub, so deletions in one component re-render the others without prop drilling or Context. Cross-tab updates are wired through the native `storage` event. All four history transitions (`add` / `remove` / `clear` / `restore`) live as pure functions in `src/hooks/use-history/reducer.ts` — the hook is plumbing on top. See RFC 010.
-- **One persistent store, three adapters.** History, the unit system and the first-run flag are all `localStorage` under `useSyncExternalStore`, so `createPersistentStore` (`src/lib/persistent-store.ts`) owns the parts that were being written three times: the cached snapshot, the `storage` listener filtered on the key, the `typeof window` guards, and the failure policy — a corrupt or rejected value reads as absent and falls back, a failed write keeps the in-memory value. An adapter supplies a key, `decode` / `encode`, and a `fallback`. `serverValue` is separate from `fallback` because the two differ for units: the server snapshot is `metric`, the client default is derived from `navigator.language`'s region. `createSubscription` (`src/lib/external-store.ts`) stays underneath as the listener primitive; `use-search-param.ts` is its other consumer.
-- **`useReversibleHistory` owns the remove + undo + toast story.** Composes `useHistory` + `useUndo` and the sonner toast call so App.tsx gets a single function per destructive action (`removeWithUndo`, `clearAllWithUndo`). The ordering invariant (mutate → stage → toast → wire) is sealed inside the hook; sonner is hard-wired because it's the project's only toast lib, here and in `city-selection.ts`. See RFC 010.
-- **Search bar — one Input, one state machine, one renderer.** `useSearchMenu` owns input value and selectedKey; `buildMenuModel` is the pure branching ladder (recents / keep-typing / suggestions / no-results / actions) tested in isolation; `<Menu>` renders the model with breakpoint-driven CSS — no `variant` prop. The default focused row is the first city match on both platforms, so Enter always runs the obvious target (no "Select a city from the list" prompt). See RFC 011. Issue 010 made the hook controlled and moved the field into the nav panel: there is no input in the closed chrome, so there is no in-flow wrapper, no mobile overlay and no Cancel button.
-- **The nav bar is the menu.** One `position: fixed` element over the sky layer, on the bottom edge below 768, the top edge to 1023 and a left rail above that. Opening springs its box from `barGeometry` to `panelGeometry` — fullscreen below 1280, a 420 px rail beside the grid above it — and swaps `<nav aria-label="Main">` for `role="dialog" aria-modal="true"` on the same node. Radix `Dialog` is not used because it portals its content and owns the mount, which would make the panel a different element from the bar. `<main>` carries `inert` while the panel is open, so no focus trap is needed. The placement table, the pixel geometry and the element ids live in `src/components/nav/contract.ts` and are asserted against real `getBoundingClientRect()` numbers by the `browser` vitest project. See issue 010.
-- **The unit switch is in the bar, at every placement.** °C / °F are two controls of the nav's own 44 px icon-button family, laid along the bar's long axis — a column on the rail, a row on the top and bottom bars — in the trailing group beside the search trigger. The active well is one node moving between them under `layoutId`, so the pair reads as one control. There is no settings intent: it opened the same panel as search and differed only in where focus landed, and the one thing it existed for — the panel's unit-toggle footer — is now visible without opening anything.
-- **Selecting a city holds the panel open until the query settles.** `resolveHold` in `src/components/nav/pending-selection.ts` is pure: it waits for the URL to catch up with the selection, then for the query behind it. Success collapses the panel; any error keeps it up and renders the message where `search-error.tsx` renders it. `not_found`, `invalid_query` and `quota_exceeded` never retry, so a city that does not exist settles in one round trip.
+Three GET routes. Anything else under `/api/` returns a 404 with the same error
+envelope; everything outside `/api/` goes to the asset binding, which is
+configured for single-page-application fallback.
 
-## Gotchas
+| Route                   | Query | Returns                                                | Edge TTL |
+| ----------------------- | ----- | ------------------------------------------------------ | -------- |
+| `/api/weather`          | `q`   | `{ location, current }`                                | 10 min   |
+| `/api/weather/forecast` | `q`   | `{ forecast, hourly, astro, alerts, airQualityIndex }` | 1 h      |
+| `/api/search`           | `q`   | `SuggestionItem[]`                                     | none     |
 
-### `keepPreviousData` + any "commit on success" side effect
+`q` is required; an empty or whitespace-only value returns `invalid_query` /
+400 without calling upstream. Weather responses carry `X-Air-Cache: HIT` or
+`MISS`. Errors are always `{ error: { kind, message } }` with the status the
+error table gives the kind:
 
-`useWeather` uses `placeholderData: keepPreviousData` so the previous weather
-card stays on screen while a new fetch is in flight. The side effect is that
-the tuple `(isSuccess, data, activeQuery)` becomes briefly inconsistent:
+| Kind             | Status | Retried |
+| ---------------- | ------ | ------- |
+| `invalid_query`  | 400    | no      |
+| `not_found`      | 404    | no      |
+| `quota_exceeded` | 429    | no      |
+| `upstream`       | 502    | yes     |
+| `network`        | 504    | yes     |
 
-- `activeQuery` has already flipped to the new city (URL changed)
-- `query.isSuccess` stays `true`
+`/api/search` is deliberately not edge-cached. The client already debounces it
+and holds results for 60 s, so the upstream call rate is low, and suggestion
+lists are short-lived.
+
+## Contracts across files
+
+**`WeatherTier` is named once, in `src/lib/tiers.ts`.** The union
+`"current" | "forecast"` plus `WEATHER_TIER_PATHS` is the whole shared spine.
+`SERVER_TIERS` in `src/worker/tiers.ts` keys TTL and upstream fetch;
+`CLIENT_TIERS` in `src/hooks/use-weather.ts` keys stale time, gc time and
+refetch-on-focus. Both are `Record<WeatherTier, …>`, so adding or renaming a
+tier is one row on each side and TypeScript finds the rest. One
+`createTierHandler(tier)` factory produces both Worker handlers.
+
+**DTO shapes are defined once, in zod.** `src/lib/schemas.ts` is the source of
+truth for every wire shape. The Worker value-imports the schemas to validate the
+two weather responses from upstream — the search endpoint's response is passed
+through unvalidated — while the frontend type-imports the inferred types only, so zod is
+tree-shaken out of the client bundle and an ESLint rule blocks any runtime
+import under `src/api`, `src/hooks` or `src/components`. The frontend never sees
+the vendor's own schema, so changing providers is a change to the Worker alone.
+
+**Display strings are formatted on the Worker, in both systems.** Upstream sends
+imperial beside metric in one response, so the Worker formats both. Every
+display quantity is a `MeasurePair` — `{ metric, imperial }`, each a
+`{ text, value, suffix, spoken }`. `read(pair, system)` picks one, and returns an
+em dash when the pair is absent. What stays a raw number on the wire is what
+feeds a colour, a bar width or an SVG angle: `pressureMb`, `uv`,
+`airQualityIndex`, `windDegree`, `humidity`, `cloud`.
+
+**A classification reads one canonical field.** `airComfort` and `beaufort` run
+Worker-side, against °C and km/h. The published Beaufort table is rounded
+independently per unit — force 3 is 12–19 km/h and 8–12 mph — so a wind in the
+gap between 12 mph and 13 mph would read "Gentle breeze" to one viewer and
+"Moderate breeze" to another if each classified in their own display system.
+
+**The Worker formats what comes from the payload; the client formats what comes
+from the clock.** The hero ticks every second, and a string baked into a body
+cached for ten minutes cannot show the current time, so every time and date in
+`src/components` goes through `src/lib/clock.ts`. Its only input is the viewer's
+locale, defaulted per function from `navigator.language`; the unit system is not
+an input, because a °C/°F preference says nothing about whether someone reads
+15:45 or 3:45 PM. `Intl` decides the hour cycle (`h11`/`h12` take `3:45 PM`,
+everything else `15:45`), the day/month order and the weekday names. A locale
+`Intl` rejects falls back to the runtime default rather than dashing every
+string on the page. Tests pass an explicit locale as the last argument.
+
+**`UnitSystem` is named once, in `src/lib/units.ts`.** The union keys
+`MeasurePair` in `schemas.ts` and the store in `src/hooks/use-unit-system.ts`,
+which defaults from `new Intl.Locale(navigator.language).region` — `US`, `LR`
+and `MM` get imperial. It is not in the URL, because a shared `?city=` link
+should read in the recipient's units, not the sender's. The stored string
+indexes the DTO, so it is validated against the union on read.
+
+**One normalization, two cache keys.** `normalizeQuery` in `src/lib/query.ts`
+trims, lowercases and collapses internal whitespace. The Worker builds its edge
+cache key from it and the client builds its TanStack Query key from it, so
+`London`, `london` and `LONDON ` are one entry per endpoint on both sides and
+the two cannot drift.
+
+**The URL is the source of truth for the active city.** `selectCity` in
+`src/lib/city-selection.ts` is the only writer of `?city=`. It takes a
+`CitySelectionIntent` — `recent | suggestion | random | location | starter` —
+resolves it to a query, writes the URL, and returns the string it committed.
+Every intent resolves on a promise, including the four that are synchronous, so
+callers have one ordering to handle. Because the URL write and the caller's
+return value come out of one call, the query the nav panel waits for and the
+query in the URL are the same string. `main.tsx` seeds the URL from history with
+`replaceState` before React mounts, so a returning visitor lands on their last
+city with the address bar already correct.
+
+**One persistent store, three adapters.** History, the unit system and the
+first-run flag are all `localStorage` under `useSyncExternalStore`.
+`createPersistentStore` owns the parts that would otherwise be written three
+times: the cached snapshot, the `storage` listener filtered on the key, the
+`typeof window` guards, and the failure policy — a corrupt or rejected value
+reads as absent and falls back, a failed write keeps the in-memory value. An
+adapter supplies a key, `decode`/`encode`, and a `fallback`. `serverValue` is a
+separate option because the two differ for units: the server snapshot is
+`metric` while the client default is derived from the viewer's region.
+
+Storage keys: `air:history:v1` (capped at 10 entries, deduped by normalized
+query), `air:units`, `air:visited`. The visited flag exists because history
+alone cannot distinguish a first visit from a visit that cleared its history —
+both read as an empty list.
+
+**The nav bar is the menu.** One `position: fixed` element sits on the bottom
+edge below 768px, the top edge to 1023px, and a left rail above that; the panel
+is fullscreen below 1280px and a 420px rail beside the grid above it. Opening
+springs the box from `barGeometry` to `panelGeometry` and swaps
+`<nav aria-label="Main">` for `role="dialog" aria-modal="true"` on the same node.
+The placement table, the pixel geometry and the element ids live in
+`src/components/nav/contract.ts` and are asserted against real
+`getBoundingClientRect()` numbers by the browser test project, so a visual
+treatment can change class names without invalidating them.
+
+**Selecting a city holds the panel open until the query settles.** `resolveHold`
+in `src/components/nav/pending-selection.ts` is pure: it waits for the URL to
+catch up with the selection, then for the query behind it. Success collapses the
+panel; any error keeps it up and renders the message inline. Because
+`not_found`, `invalid_query` and `quota_exceeded` never retry, a city that does
+not exist settles in one round trip.
+
+## Styling
+
+Tailwind v4, with one stylesheet: `src/index.css`. There are no CSS modules and
+no `tailwind.config`. An `@theme inline` block maps Tailwind's `--color-*`,
+`--radius-*` and `--shadow-*` names onto plain custom properties, so the palette
+is edited in the `:root` block below it rather than in the theme.
+
+Day and night are two full cascades, not a dark mode. `.night` redefines about a
+dozen tokens, and which cascade is active follows the located city's local time
+(`current.timeOfDay`), never `prefers-color-scheme`. `App.tsx` sets the class on
+the app root _and_ mirrors it onto `<html>`, because dialogs, the scrim and the
+toaster portal to `<body>` and would otherwise read the day palette on a night
+page. The `dark` custom variant Tailwind expects is declared but never applied.
+
+Anything that is a repeated surface — `.bento-tile` and its variants, the hero,
+the nav surface, the hourly table, the forecast grid, the dialog chrome — is a
+named class in that file rather than a utility string, because several of them
+set `background`, `border` and `padding` in an unlayered rule so those
+properties beat any utility regardless of source order. One custom variant,
+`fc-wide`, is a two-range media query (640–767.98px or ≥1024px) marking the
+widths at which a forecast day renders as a column.
+
+Reduced motion is handled in two places: a trailing
+`@media (prefers-reduced-motion: reduce)` block neutralizes the page-level
+animations, and components with their own motion carry a block next to the rule
+it modifies. `prefersReducedMotion()` in `src/lib/motion` covers the
+JavaScript-driven paths, and it reads `matchMedia` at call time rather than at
+module load because the setting can change mid-session.
+
+## Build and type configuration
+
+`tsconfig.json` is a solution file with three references:
+
+- `tsconfig.app.json` — `src`, minus the Worker
+- `tsconfig.worker.json` — the Worker, plus an explicit `include` list of the
+  `src/lib` modules it may share: `errors.ts`, `query.ts`, `schemas.ts`. Sharing
+  a fourth module means editing that list, which is what keeps browser-only code
+  out of the Worker bundle.
+- `tsconfig.node.json` — the two Vite config files, under looser rules than the
+  other two
+
+`vite.config.ts` runs `babel-plugin-react-compiler` through
+`@vitejs/plugin-react`, mounts the Worker with `@cloudflare/vite-plugin` so dev
+and production take the same path, and splits `@tanstack/react-query` and
+`radix-ui` into their own vendor chunks.
+
+## Traps
+
+### `keepPreviousData` and any commit-on-success effect
+
+Both weather hooks use `placeholderData: keepPreviousData` so the previous card
+stays on screen while a new fetch is in flight. That leaves a window in which
+the tuple `(isSuccess, data, activeQuery)` is inconsistent:
+
+- `activeQuery` has already flipped to the new city, because the URL changed
+- `query.isSuccess` is still `true`
 - `query.data` still points at the **previous** city's payload
 - `query.isPlaceholderData` is `true` until the new fetch resolves
 
 Any code that commits a derived value from `query.data` keyed by `activeQuery`
-during this window will write stale data under a fresh key. The history-commit
-effect in `App.tsx` was bitten by exactly this: it wrote `activeQuery` ("Berlin,
-Germany") alongside `formatDisplayName(previousData)` ("Santa Cruz Xoxocotlán,
-Mexico") and then locked itself out via its own ref guard, so the real Berlin
-payload never made it into history.
+during that window writes stale data under a fresh key — the new city's query
+alongside the old city's display name.
 
-**Rule:** if you gate a `useEffect` on `query.isSuccess`, also gate on
-`!query.isPlaceholderData` whenever the effect correlates `query.data` with the
-current query key. Or wait for `isFetching === false`. Just `isSuccess` is not
-enough with `keepPreviousData`.
+**Rule:** when gating a `useEffect` on `query.isSuccess`, also gate on
+`!query.isPlaceholderData`, or wait for `isFetching === false`. `isSuccess`
+alone is not enough. The history-commit effect in `App.tsx` is the one live
+instance.
 
-## Stack
+### `CACHE_VERSION` and DTO changes
 
-- **React 19** + **TypeScript** (strict, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`)
-- **Vite 6** with `@cloudflare/vite-plugin` for unified dev
-- **Cloudflare Workers** with the static-asset binding (one deploy for SPA + API)
-- **TanStack Query 5** for async state, caching, and request lifecycle
-- **Tailwind v4** + **shadcn/ui** with a custom theme
-- **Vitest** + **MSW** + **@cloudflare/vitest-pool-workers**
-- **ESLint** (typescript-eslint, react-hooks, react-refresh) + **Prettier**
+`src/worker/cache.ts` puts `CACHE_VERSION` in every edge cache key. Change a
+shape in `src/lib/schemas.ts` without bumping it and entries cached against the
+old shape keep serving from `caches.default` for up to their TTL, rendering as
+`undefined` fields against the new client. Nothing enforces this; bump it
+whenever the DTO surface changes.
+
+### Zod in the frontend bundle
+
+The ESLint rule catches a direct `import "zod"` under `src/api`, `src/hooks` and
+`src/components`, but nothing catches a _value_ import from `@/lib/schemas`,
+which pulls zod in transitively. Imports from that file must be `import type`.
+There is no automated bundle-size check.
