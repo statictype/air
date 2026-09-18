@@ -97,7 +97,7 @@ describe("HourlyCard — the matrix", () => {
     expect(row("Feels like")[0]).toHaveTextContent("18°");
   });
 
-  it("keeps a 1° gap, which the old 2° collapse swallowed", () => {
+  it("keeps a 1° gap between the temperature and the feels-like", () => {
     render(
       <HourlyCard
         hourly={hourly({ 0: { temp: temperature(12, 53.6), feelsLike: temperature(11, 51.8) } })}
@@ -163,7 +163,7 @@ describe("HourlyCard — precipitation", () => {
   });
 
   it("reads the snow chance when upstream reports no chance of rain", () => {
-    // Regression: a sub-zero hour with snow falling reports `chanceOfRain: 0`.
+    // Upstream reports `chanceOfRain: 0` for a sub-zero hour with snow falling.
     render(
       <HourlyCard
         hourly={hourly({
@@ -199,7 +199,7 @@ describe("HourlyCard — the scroll controls", () => {
     expect(screen.getByRole("button", { name: /later hours/i })).toBeDisabled();
   });
 
-  it("leaves no view switch behind", () => {
+  it("renders no view-switch toggles", () => {
     render(<HourlyCard hourly={hourly()} tz={TZ} />);
 
     expect(screen.queryByRole("button", { pressed: true })).not.toBeInTheDocument();

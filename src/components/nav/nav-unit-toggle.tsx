@@ -44,10 +44,9 @@ function UnitLetter({
 }
 
 /**
- * The unit switch, in the bar at every placement. Two letters in adjacent
- * cells, laid along the bar's long axis — side by side on the top and bottom
- * bars, stacked on the rail. No track and no plate: ink alone says which system
- * is active.
+ * The unit switch, in the bar at every placement. Two letters laid along the
+ * bar's long axis — side by side on the top and bottom bars, stacked on the
+ * rail.
  */
 export function NavUnitToggle({ vertical }: { vertical: boolean }) {
   const [system, setSystem] = useUnitSystemControl();

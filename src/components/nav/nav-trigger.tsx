@@ -3,9 +3,8 @@ import type { ComponentProps, Ref } from "react";
 import { cn } from "@/lib/utils";
 import { GLYPH_SIZE, GLYPH_STROKE, ICON_BUTTON, NAV_PANEL_ID } from "./contract";
 
-/** One control family across the bar and the panel header: a 44 px circle with
- *  no background in any state. The glyph rests at 85 % of the nav ink and goes
- *  to full on hover. Focus is the 2 px outline the rest of the app uses. */
+/** One control family across the bar and the panel header. Colour and hover
+ *  state come from the `nav-icon-button` rules in `index.css`. */
 const NAV_ICON_BUTTON = cn(
   "nav-icon-button flex shrink-0 items-center justify-center rounded-full outline-none",
   "transition-[color,transform] duration-150 active:scale-95",

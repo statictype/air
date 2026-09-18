@@ -34,9 +34,9 @@ export const BAR_END_INSET = (BAR_THICKNESS - ICON_BUTTON) / 2;
 export const LOGO_BOX = 44;
 export const GLYPH_SIZE = 20;
 export const GLYPH_STROKE = 1.75;
-/** BAR_THICKNESS + BAR_INSET. What `<main>` is padded by on the bar's side. */
+/** What `<main>` is padded by on the bar's side. */
 export const RAIL_FOOTPRINT = BAR_THICKNESS + BAR_INSET;
-/** Rail width when the panel is `partial`. */
+/** Panel width when the panel is `partial`. */
 export const PANEL_WIDTH = 420;
 /** The dialog corner the design system gives every overlay surface. */
 export const PANEL_RADIUS = 36;

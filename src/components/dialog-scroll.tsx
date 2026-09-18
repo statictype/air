@@ -10,9 +10,8 @@ interface DialogScrollProps {
  * The scrolling body of a dialog.
  *
  * `data-fade-b` is present only while content sits past the bottom edge;
- * `.dialog-scroll` reads it to open the mask. Same idiom as `HourlyCard`'s
- * horizontal edges — the fade is a scroll cue, not a decorative falloff, so a
- * panel whose content fits shows a hard, full-strength last line.
+ * `.dialog-scroll` reads it to open the mask. `HourlyCard` uses the same idiom
+ * on its horizontal edges.
  *
  * The observer watches the child as well as the container: at `minmax(0,1fr)`
  * the container's own box does not change when its content grows.

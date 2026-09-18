@@ -58,10 +58,12 @@ export function NavPanel({
     onClose,
   });
 
-  // The panel owns the query string. Nothing outside it should keep fetching
-  // suggestions for a field that no longer exists.
+  // The panel owns the query string. Once it unmounts, nothing outside it
+  // should keep fetching suggestions for a field that is gone.
   useEffect(() => {
     return () => onValueChange("");
+    // Empty deps: the cleanup has to run on unmount, not whenever
+    // `onValueChange` changes identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

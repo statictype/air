@@ -104,12 +104,9 @@ export function AlertsCard({ alerts, tz, isNight, className }: AlertsCardProps) 
         />
 
         <span className="relative flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
-          {/* One size at every width: light is the headline weight, and it
-              needs 20px to hold its stems. */}
           <span className="line-clamp-2 min-w-0 text-xl leading-snug font-light tracking-tight">
             {top.event}
           </span>
-          {/* Steps down by size, not alpha — see The Step-Down Rule. */}
           {until && <span className="text-sm tracking-tight">{until}</span>}
         </span>
 
@@ -182,10 +179,6 @@ function AlertEntry({ alert, tz }: { alert: WeatherAlert; tz: string }) {
   const range = formatRange(alert.effective, alert.expires, tz);
 
   return (
-    /* Tight inside an entry, generous between them: 6–16px internal steps
-       against a 44px gap and a rule at the seam. The severity word and the
-       window share one line — stacked, the chip sat alone on a line of its own
-       and every entry read as four evenly-spaced rows. */
     <article className="py-5.5 first:pt-5 last:pb-1">
       <div className="flex items-start gap-2.5">
         <Icon className={cn("mt-1 size-4 shrink-0", mark)} strokeWidth={1.75} aria-hidden="true" />
@@ -210,9 +203,6 @@ function AlertEntry({ alert, tz }: { alert: WeatherAlert; tz: string }) {
       {alert.desc && (
         <p className="mt-4 pl-6.5 text-sm leading-relaxed whitespace-pre-line">{alert.desc}</p>
       )}
-      {/* A 2rem mark, not a full-width rule: at the same width and weight as
-          the divider between entries, the "what to do" break read as a seam and
-          every panel looked like a stack of equal rules. */}
       {alert.instruction && (
         <div className="mt-4 ml-6.5">
           <span aria-hidden="true" className="block h-px w-8 bg-foreground/25" />

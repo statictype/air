@@ -32,7 +32,7 @@ export function WeatherGrid({ query, current: c, isStale }: WeatherGridProps) {
       aria-busy={isStale}
       className={cn(
         // 8 columns from `md` to `xl`. The Now column takes 4 of them beside an
-        // equal forecast, and 3 from `lg`, where the hourly card returns to its side.
+        // equal forecast, and 3 from `lg`, where the hourly card sits beside it.
         "grid w-full auto-rows-[minmax(150px,auto)] grid-cols-1 gap-5 transition-opacity duration-300 sm:grid-cols-4 sm:gap-6 md:grid-cols-8 xl:grid-cols-4",
         hasAlerts && "md:grid-rows-[auto_auto] xl:grid-rows-none",
         isStale && "opacity-60",

@@ -75,7 +75,7 @@ describe("useSearchMenu", () => {
     expect(result.current.value).toBe("");
   });
 
-  it("keeps the clear-history dialog state without it meaning anything about open", () => {
+  it("toggling the clear-history dialog does not close the panel", () => {
     const onClose = vi.fn();
     const { result } = renderHook(() => useSearchMenu(makeArgs({ onClose })));
 
@@ -106,7 +106,7 @@ describe("useSearchMenu", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it("submit with no rows is a silent no-op (no select-prompt flash)", () => {
+  it("submit with no rows does nothing", () => {
     const onSelect = vi.fn();
     const { result } = renderHook(() => useSearchMenu(makeArgs({ onSelect })));
 
@@ -169,7 +169,7 @@ describe("useSearchMenu", () => {
     });
   });
 
-  it("typing clears any explicitly-selected key (falls back to the new first row)", () => {
+  it("typing clears the explicit selection, so focus falls back to the first row", () => {
     const recents = [recent("a", "Paris"), recent("b", "London")];
     const { result } = renderHook(() => useSearchMenu(makeArgs({ recentItems: recents })));
 
