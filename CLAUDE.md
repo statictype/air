@@ -12,7 +12,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 | `pnpm test:run`                     | Vitest single run across all three projects                   |
 | `pnpm test`                         | Vitest watch                                                  |
 | `pnpm build`                        | `tsc -b && vite build`                                        |
-| `pnpm ci`                           | Full gate: format:check → lint → typecheck → test:run → build |
+| `pnpm run ci`                       | Full gate: format:check → lint → typecheck → test:run → build |
 
 **Do not run `pnpm dev`.** The user runs the dev server themselves; verify with
 `typecheck` / `lint` / `build`.

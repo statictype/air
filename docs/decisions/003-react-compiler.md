@@ -17,7 +17,7 @@ build-time transforms whose preconditions nothing verifies.
   `vite.config.ts`.
 - Lint with ESLint 10 in flat config — `typescript-eslint`, `react-hooks` v7
   with the compiler rules, `react-refresh` — and format with Prettier. Both run
-  in `pnpm ci`.
+  in `pnpm run ci`.
 
 The lint stack follows from the compiler. Any linter without the v7 hook rules
 would leave the compiler's preconditions unchecked, and running two linters that
