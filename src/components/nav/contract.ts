@@ -1,47 +1,58 @@
 /**
  * The parts of the nav that both the browser suite and every visual treatment
- * agree on: where the bar sits, how big it is, and what the panel is called.
- * Class names, colour and motion are not in here.
+ * agree on: where the controls and the mark sit, how big they are, where the
+ * sheet opens and what it is called. Class names, colour and motion are not in
+ * here.
  */
 
-export type BarEdge = "bottom" | "top" | "left";
-export type PanelMode = "fullscreen" | "partial";
+/** `bottom`: units and search in the two bottom corners. `left`: the two
+ *  stacked at the bottom of a column on the left edge, the mark at its top. */
+export type ControlEdge = "bottom" | "left";
+/** `sheet` spans the viewport's width; `column` is `PANEL_WIDTH` on the left. */
+export type PanelMode = "sheet" | "column";
 /** Direction a dismiss drag travels. `null` at ≥ 1280, where there is no drag. */
-export type DragAxis = "down" | "up" | "left" | null;
+export type DragAxis = "down" | "left" | null;
 
 export interface NavPlacement {
-  edge: BarEdge;
+  edge: ControlEdge;
   panel: PanelMode;
   drag: DragAxis;
 }
 
-/** Tailwind's md, lg and xl. */
-export const BREAKPOINT_MD = 768;
+/** Tailwind's lg and xl. */
 export const BREAKPOINT_LG = 1024;
 export const BREAKPOINT_XL = 1280;
 
-export const MEDIA_MD = `(min-width: ${BREAKPOINT_MD}px)`;
 export const MEDIA_LG = `(min-width: ${BREAKPOINT_LG}px)`;
 export const MEDIA_XL = `(min-width: ${BREAKPOINT_XL}px)`;
 
 /** Pixels. */
-export const BAR_THICKNESS = 56;
-export const BAR_INSET = 12;
+export const EDGE_INSET = 12;
 export const ICON_BUTTON = 44;
-/** The ring left when a 44 px cell is centred across the 56 px bar. Also the
- *  cluster's padding at the bar's ends. */
-export const BAR_END_INSET = (BAR_THICKNESS - ICON_BUTTON) / 2;
-export const LOGO_BOX = 44;
+/** Height of a floating control, and the width of the search one. */
+export const CONTROL = 48;
+/** The mark is the same size as the search button. */
+export const LOGO_BOX = CONTROL;
+/** The ring a floating control leaves around its 44 px cell. */
+export const CONTROL_RING = (CONTROL - ICON_BUTTON) / 2;
+/** The units capsule's long side: two 44 px cells and the ring. */
+export const UNITS_LENGTH = 2 * ICON_BUTTON + 2 * CONTROL_RING;
 export const GLYPH_SIZE = 20;
 export const GLYPH_STROKE = 1.75;
-/** What `<main>` is padded by on the bar's side. */
-export const RAIL_FOOTPRINT = BAR_THICKNESS + BAR_INSET;
-/** Panel width when the panel is `partial`. */
+/** The left column at `lg` and wider: its width, the inset of the mark and the
+ *  bottom cell from its ends, and the gap that groups search apart from units. */
+export const COLUMN_WIDTH = 56;
+export const COLUMN_END_INSET = (COLUMN_WIDTH - ICON_BUTTON) / 2;
+export const COLUMN_GROUP_GAP = COLUMN_WIDTH / 2;
+/** What `<main>` is padded by beside the left column. */
+export const COLUMN_FOOTPRINT = COLUMN_WIDTH + EDGE_INSET;
+/** What `<main>` is padded by under the bottom controls. */
+export const CONTROL_FOOTPRINT = CONTROL + EDGE_INSET;
+/** Width of the `column` panel. */
 export const PANEL_WIDTH = 420;
 /** The dialog corner the design system gives every overlay surface. */
 export const PANEL_RADIUS = 36;
 
-/** Stable across open and close — the container is one node. */
 export const NAV_ROOT_ID = "nav-root";
 export const NAV_PANEL_ID = "nav-panel";
 
@@ -49,23 +60,21 @@ export const NAV_LABEL_CLOSED = "Main";
 export const NAV_LABEL_OPEN = "Search";
 
 export function navPlacement(width: number): NavPlacement {
-  if (width < BREAKPOINT_MD) return { edge: "bottom", panel: "fullscreen", drag: "down" };
-  if (width < BREAKPOINT_LG) return { edge: "top", panel: "fullscreen", drag: "up" };
-  if (width < BREAKPOINT_XL) return { edge: "left", panel: "fullscreen", drag: "left" };
-  return { edge: "left", panel: "partial", drag: null };
+  if (width < BREAKPOINT_LG) return { edge: "bottom", panel: "sheet", drag: "down" };
+  if (width < BREAKPOINT_XL) return { edge: "left", panel: "column", drag: "left" };
+  return { edge: "left", panel: "column", drag: null };
 }
 
-/** Same table, from the three media queries the hook subscribes to. */
-export function placementFromMatches(md: boolean, lg: boolean, xl: boolean): NavPlacement {
+/** Same table, from the two media queries the hook subscribes to. */
+export function placementFromMatches(lg: boolean, xl: boolean): NavPlacement {
   if (xl) return navPlacement(BREAKPOINT_XL);
   if (lg) return navPlacement(BREAKPOINT_LG);
-  if (md) return navPlacement(BREAKPOINT_MD);
   return navPlacement(0);
 }
 
 /** Inline styles rather than Tailwind arbitrary values: the browser suite reads
  *  these numbers back off `getBoundingClientRect()`, so they have to survive
- *  whatever class names a visual treatment puts on the container. */
+ *  whatever class names a visual treatment puts on the element. */
 export interface BoxStyle {
   top?: string;
   right?: string;
@@ -75,82 +84,89 @@ export interface BoxStyle {
   height?: string;
 }
 
-const INSET = `${BAR_INSET}px`;
+const px = (n: number) => `${n}px`;
+const INSET = px(EDGE_INSET);
 /** `env()` resolves to 0 everywhere except a notched viewport. */
-const INSET_BOTTOM = `calc(${BAR_INSET}px + env(safe-area-inset-bottom, 0px))`;
+const SAFE_TOP = "env(safe-area-inset-top, 0px)";
+const SAFE_BOTTOM = "env(safe-area-inset-bottom, 0px)";
+const INSET_TOP = `calc(${INSET} + ${SAFE_TOP})`;
+const INSET_BOTTOM = `calc(${INSET} + ${SAFE_BOTTOM})`;
 
-export function barGeometry(placement: NavPlacement): BoxStyle {
+/** The left column's centre line. Every piece at `lg` and wider is centred on
+ *  it. */
+const COLUMN_CENTRE = EDGE_INSET + COLUMN_WIDTH / 2;
+const COLUMN_PIECE_LEFT = px(COLUMN_CENTRE - CONTROL / 2);
+const UNITS_BOTTOM = EDGE_INSET + COLUMN_END_INSET - CONTROL_RING;
+/** The search cell sits `COLUMN_GROUP_GAP` above the units cells. */
+const SEARCH_BOTTOM = UNITS_BOTTOM + UNITS_LENGTH + COLUMN_GROUP_GAP - 2 * CONTROL_RING;
+
+export function searchGeometry(placement: NavPlacement): BoxStyle {
+  const size = { width: px(CONTROL), height: px(CONTROL) };
+  if (placement.edge === "bottom") return { right: INSET, bottom: INSET_BOTTOM, ...size };
+  return { left: COLUMN_PIECE_LEFT, bottom: px(SEARCH_BOTTOM), ...size };
+}
+
+/** A capsule along the bottom edge, stood upright in the left column. */
+export function unitsGeometry(placement: NavPlacement): BoxStyle {
   if (placement.edge === "bottom") {
-    return { left: INSET, right: INSET, bottom: INSET_BOTTOM, height: `${BAR_THICKNESS}px` };
+    return { left: INSET, bottom: INSET_BOTTOM, width: px(UNITS_LENGTH), height: px(CONTROL) };
   }
-  if (placement.edge === "top") {
-    return { left: INSET, right: INSET, top: INSET, height: `${BAR_THICKNESS}px` };
-  }
-  return { left: INSET, top: INSET, bottom: INSET, width: `${BAR_THICKNESS}px` };
+  return {
+    left: COLUMN_PIECE_LEFT,
+    bottom: px(UNITS_BOTTOM),
+    width: px(CONTROL),
+    height: px(UNITS_LENGTH),
+  };
 }
 
-export function panelGeometry(placement: NavPlacement): BoxStyle {
-  if (placement.panel === "partial") {
-    return { left: INSET, top: INSET, bottom: INSET, width: `${PANEL_WIDTH}px` };
-  }
-  return { left: "0px", right: "0px", top: "0px", bottom: "0px" };
+/** The mark at the top of the left column, as far from the top as the units
+ *  capsule is from the bottom. Below `lg` it is in the content flow instead;
+ *  see `markRow`. */
+export function markGeometry(): BoxStyle {
+  return {
+    left: px(COLUMN_CENTRE - LOGO_BOX / 2),
+    top: px(UNITS_BOTTOM),
+    width: px(LOGO_BOX),
+    height: px(LOGO_BOX),
+  };
 }
 
-export function mainPadding(placement: NavPlacement): BoxStyle & {
-  paddingTop?: string;
+/** Top padding of the centred logo row below `lg`. */
+export function markRow(): { paddingTop: string } {
+  return { paddingTop: INSET_TOP };
+}
+
+/** The open sheet. It leaves a strip of scrim on the side away from its edge. */
+export function sheetGeometry(placement: NavPlacement): BoxStyle {
+  if (placement.panel === "column") {
+    return { left: INSET, top: INSET, bottom: INSET, width: px(PANEL_WIDTH) };
+  }
+  return { left: "0px", right: "0px", bottom: "0px", top: INSET_TOP };
+}
+
+/** Corners on the sides that do not touch a viewport edge, and safe-area
+ *  padding on the side that does. */
+export function sheetSurface(placement: NavPlacement): {
+  borderRadius: string;
+  paddingBottom?: string;
+} {
+  const r = px(PANEL_RADIUS);
+  if (placement.panel === "column") return { borderRadius: r };
+  return { borderRadius: `${r} ${r} 0 0`, paddingBottom: SAFE_BOTTOM };
+}
+
+/** Where the sheet enters from and exits to: past the edge it belongs to. */
+export function sheetOffscreen(placement: NavPlacement): { x: number } | { y: string } {
+  if (placement.panel === "column") return { x: -(PANEL_WIDTH + EDGE_INSET) };
+  return { y: "100%" };
+}
+
+export function mainPadding(placement: NavPlacement): {
   paddingBottom?: string;
   paddingLeft?: string;
 } {
-  const pad = `${RAIL_FOOTPRINT}px`;
   if (placement.edge === "bottom") {
-    return { paddingBottom: `calc(${pad} + env(safe-area-inset-bottom, 0px))` };
+    return { paddingBottom: `calc(${px(CONTROL_FOOTPRINT)} + ${SAFE_BOTTOM})` };
   }
-  if (placement.edge === "top") return { paddingTop: pad };
-  return { paddingLeft: pad };
-}
-
-export const PANEL_PAD = 12;
-export const HEADER_ROW = 52;
-
-const SAFE_TOP = "env(safe-area-inset-top, 0px)";
-const FULL = { top: "0px", right: "0px", bottom: "0px", left: "0px" } as const;
-
-export function barLayer(placement: NavPlacement, containerIsPanel: boolean): BoxStyle {
-  if (!containerIsPanel) return { ...FULL };
-  if (placement.panel === "partial") {
-    return { left: "0px", top: "0px", bottom: "0px", width: `${BAR_THICKNESS}px` };
-  }
-  return barGeometry(placement);
-}
-
-export function panelLayer(placement: NavPlacement, containerIsPanel: boolean): BoxStyle {
-  if (containerIsPanel) return { ...FULL };
-  if (placement.panel === "partial") {
-    return { left: "0px", top: "0px", bottom: "0px", width: `${PANEL_WIDTH}px` };
-  }
-  const size = { width: "100dvw", height: "100dvh" };
-  if (placement.edge === "bottom") {
-    return { left: `-${INSET}`, bottom: `calc(-1 * ${INSET_BOTTOM})`, ...size };
-  }
-  return { left: `-${INSET}`, top: `-${INSET}`, ...size };
-}
-
-export function markSlot(placement: NavPlacement, isOpen: boolean): BoxStyle {
-  const size = { width: `${LOGO_BOX}px`, height: `${LOGO_BOX}px` };
-  if (!isOpen) {
-    const inset = `${BAR_END_INSET}px`;
-    return { left: inset, top: inset, ...size };
-  }
-  const left = `${PANEL_PAD}px`;
-  const top = `${PANEL_PAD + (HEADER_ROW - LOGO_BOX) / 2}px`;
-  if (placement.panel === "partial") return { left, top, ...size };
-  return { left, top: `calc(${top} + ${SAFE_TOP})`, ...size };
-}
-
-export function panelSafeArea(placement: NavPlacement): {
-  paddingTop?: string;
-  paddingBottom?: string;
-} {
-  if (placement.panel === "partial") return {};
-  return { paddingTop: SAFE_TOP, paddingBottom: "env(safe-area-inset-bottom, 0px)" };
+  return { paddingLeft: px(COLUMN_FOOTPRINT) };
 }

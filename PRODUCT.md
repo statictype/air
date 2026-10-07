@@ -40,9 +40,10 @@ Two things a neighboring weather app could not truthfully copy:
 - One-shot lookups from a search field. Autocomplete fires 300 ms after idle
   typing at a 3-character minimum; the weather fetch fires only on an explicit
   selection — a suggestion, a recent city, geolocation, or "surprise me".
-- Both mobile and desktop are first-class. One nav element carries the bar and
-  the search panel at four placements, and the menu inside it is one component
-  whose breakpoint differences are CSS rather than a variant prop.
+- Both mobile and desktop are first-class. The nav places its two controls in
+  the bottom corners below `lg` and at the bottom-left above it, and opens one
+  search sheet. The menu inside it is
+  one component whose breakpoint differences are CSS rather than a variant prop.
 - The rendered surface changes with the location's local time: a `night` class
   on the root swaps the sky and the tile surfaces.
 - Recent cities persist in `localStorage` and sync across tabs via the native

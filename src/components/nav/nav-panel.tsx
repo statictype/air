@@ -1,25 +1,15 @@
 import { XIcon } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
-import { type ReactNode, useEffect, useId } from "react";
+import { useEffect, useId } from "react";
 import type { SuggestionItem } from "@/api/types";
 import { Menu } from "@/components/search-bar/menu";
 import type { NavigableItem } from "@/components/search-bar/menu-model";
 import { SearchField } from "@/components/search-bar/search-field";
 import { useSearchMenu } from "@/components/search-bar/use-search-menu";
 import type { HistoryItem } from "@/hooks/use-history";
-import {
-  PANEL_REGION_DELAY,
-  PANEL_REGION_IN,
-  PANEL_REGION_OFFSET,
-  PANEL_STAGGER,
-  REDUCED_MOTION_FADE,
-} from "@/lib/motion/constants";
-import type { NavPlacement } from "./contract";
 import { NavIconButton } from "./nav-trigger";
 import type { PendingSelection } from "./pending-selection";
 
 interface NavPanelProps {
-  placement: NavPlacement;
   recentItems: HistoryItem[];
   suggestions: SuggestionItem[];
   isSuggestionsLoading: boolean;
@@ -33,7 +23,6 @@ interface NavPanelProps {
 }
 
 export function NavPanel({
-  placement,
   recentItems,
   suggestions,
   isSuggestionsLoading,
@@ -47,7 +36,6 @@ export function NavPanel({
 }: NavPanelProps) {
   const inputId = useId();
   const errorId = `${inputId}-error`;
-  const reduced = useReducedMotion() === true;
 
   const menu = useSearchMenu({
     recentItems,
@@ -69,7 +57,7 @@ export function NavPanel({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <Region index={0} placement={placement} reduced={reduced} className="shrink-0 px-3 pt-3">
+      <div className="shrink-0 px-3 pt-3">
         <SearchField
           id={inputId}
           errorId={errorId}
@@ -81,15 +69,9 @@ export function NavPanel({
           formProps={menu.formProps}
           trailing={<NavIconButton icon={XIcon} label="Close" onClick={onClose} />}
         />
-      </Region>
+      </div>
 
-      <Region
-        index={1}
-        placement={placement}
-        reduced={reduced}
-        className="flex min-h-0 flex-1 flex-col overflow-hidden"
-        aria-busy={pending !== null}
-      >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-busy={pending !== null}>
         <Menu
           model={menu.model}
           focusedKey={menu.focusedKey}
@@ -104,45 +86,7 @@ export function NavPanel({
           isDialogOpen={menu.isDialogOpen}
           setDialogOpen={menu.setDialogOpen}
         />
-      </Region>
+      </div>
     </div>
-  );
-}
-
-/** The regions arrive in reading order, travelling the short way along the axis
- *  the container just grew on. */
-function Region({
-  index,
-  placement,
-  reduced,
-  className,
-  children,
-  ...rest
-}: {
-  index: number;
-  placement: NavPlacement;
-  reduced: boolean;
-  className: string;
-  children: ReactNode;
-} & { "aria-busy"?: boolean }) {
-  const from =
-    placement.edge === "left"
-      ? { x: -PANEL_REGION_OFFSET }
-      : { y: placement.edge === "bottom" ? PANEL_REGION_OFFSET : -PANEL_REGION_OFFSET };
-
-  return (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, ...from }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={
-        reduced
-          ? REDUCED_MOTION_FADE
-          : { ...PANEL_REGION_IN, delay: PANEL_REGION_DELAY + index * PANEL_STAGGER }
-      }
-      className={className}
-      {...rest}
-    >
-      {children}
-    </motion.div>
   );
 }

@@ -6,39 +6,21 @@ import { itemIntent, type NavigableItem } from "@/components/search-bar/menu-mod
 import { searchErrorMessage } from "@/components/search-bar/search-error-model";
 import type { HistoryItem } from "@/hooks/use-history";
 import type { CitySelectionIntent } from "@/lib/city-selection";
+import { REDUCED_MOTION_FADE, SCRIM_FADE, SHEET_SPRING } from "@/lib/motion/constants";
 import {
-  COLLAPSE_SPRING,
-  EXPAND_SPRING,
-  REDUCED_MOTION_FADE,
-  SCRIM_FADE,
-} from "@/lib/motion/constants";
-import {
-  BAR_THICKNESS,
-  barGeometry,
-  type NavPlacement,
-  PANEL_RADIUS,
   NAV_LABEL_CLOSED,
   NAV_LABEL_OPEN,
   NAV_PANEL_ID,
   NAV_ROOT_ID,
-  panelGeometry,
+  sheetGeometry,
+  sheetOffscreen,
+  sheetSurface,
 } from "./contract";
 import { NavBar } from "./nav-bar";
-import { NavGeometryContext } from "./nav-geometry";
-import { BarLayer, NavMark, PanelLayer } from "./nav-layers";
 import { NavPanel } from "./nav-panel";
 import { type PendingSelection, resolveHold, type SettleState } from "./pending-selection";
 import { useDismissDrag } from "./use-dismiss-drag";
 import { useNavPlacement } from "./use-nav-placement";
-
-/** Closed the bar is a pill; open it takes the dialog corner, or none at all
- *  when it runs edge to edge. A fullscreen panel pulled away from its edge by a
- *  dismiss drag takes the dialog corner too, because its edge is now visible. */
-function containerRadius(placement: NavPlacement, isOpen: boolean, isDragging: boolean): number {
-  if (!isOpen) return BAR_THICKNESS / 2;
-  if (placement.panel === "partial") return PANEL_RADIUS;
-  return isDragging ? PANEL_RADIUS : 0;
-}
 
 interface NavProps {
   isOpen: boolean;
@@ -59,15 +41,13 @@ interface NavProps {
 }
 
 /**
- * One node with two roles. Closed it is the bar: `<nav aria-label="Main">`.
- * Open it is a modal surface carrying `role="dialog"`. The element, its `id`
- * and its `layout` spring are the same in both — the box springs from
- * `barGeometry` to `panelGeometry` and the children reposition inside it.
+ * `<nav aria-label="Main">` holds the controls and stays mounted. Search opens
+ * a sibling `role="dialog"` sheet that travels in from the controls' edge and
+ * leaves the same way.
  *
- * Modal is declared, not portalled. Radix `Dialog` would move the content to
- * `<body>` and own its mount, which would make the panel a different node from
- * the bar. `<main>` carries `inert` instead, so there is nothing to trap focus
- * away from and no focus trap is implemented.
+ * Modal is declared, not portalled. `<main>` and `<nav>` both carry `inert`
+ * while the sheet is open, so there is nothing to trap focus away from and no
+ * focus trap is implemented.
  */
 export function Nav(props: NavProps) {
   const placement = useNavPlacement();
@@ -96,23 +76,20 @@ export function Nav(props: NavProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  // Focus returns to whatever opened the panel — either trigger, or the empty
-  // state's "Search a city" row.
+  // Focus returns to whatever opened the sheet — the search trigger, or the
+  // empty state's "Search a city" row.
   useEffect(() => {
     if (isOpen) {
-      // The panel's own initial focus has already landed by the time this runs,
-      // so anything inside the nav is never the opener — the trigger that was
-      // clicked is covered by the fallback below.
+      // The field's autofocus has already landed by the time this runs, so
+      // anything inside the nav or the sheet is never the opener — the trigger
+      // is covered by the fallback below.
       const active = document.activeElement as HTMLElement | null;
-      openerRef.current = active?.closest(`#${NAV_ROOT_ID}`) ? null : active;
+      openerRef.current = active?.closest(`#${NAV_ROOT_ID}, #${NAV_PANEL_ID}`) ? null : active;
       return;
     }
     setPending(null);
     const opener = openerRef.current;
     openerRef.current = null;
-    // The trigger is unmounted for as long as the panel is open, so the element
-    // that was focused at open time is usually gone by now. The trigger that
-    // has just remounted in its place is the same control.
     const target = opener?.isConnected ? opener : searchRef.current;
     target?.focus();
   }, [isOpen]);
@@ -152,8 +129,9 @@ export function Nav(props: NavProps) {
     });
   };
 
-  const geometry = isOpen ? panelGeometry(placement) : barGeometry(placement);
-  const transition = reduced ? REDUCED_MOTION_FADE : isOpen ? EXPAND_SPRING : COLLAPSE_SPRING;
+  const offscreen = sheetOffscreen(placement);
+  const hidden = reduced ? { opacity: 0 } : offscreen;
+  const shown = reduced ? { opacity: 1 } : { x: 0, y: 0 };
 
   const dismiss = useDismissDrag({
     axis: placement.drag,
@@ -163,6 +141,15 @@ export function Nav(props: NavProps) {
 
   return (
     <>
+      <nav id={NAV_ROOT_ID} aria-label={NAV_LABEL_CLOSED} inert={isOpen}>
+        <NavBar
+          placement={placement}
+          isOpen={isOpen}
+          onOpenSearch={props.onOpen}
+          searchRef={searchRef}
+        />
+      </nav>
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -178,57 +165,39 @@ export function Nav(props: NavProps) {
         )}
       </AnimatePresence>
 
-      <NavGeometryContext
-        value={{ placement, containerIsPanel: isOpen, reduced: reduced === true, transition }}
-      >
-        <motion.nav
-          id={NAV_ROOT_ID}
-          layout={!reduced}
-          initial={false}
-          animate={{ borderRadius: containerRadius(placement, isOpen, dismiss.isDragging) }}
-          transition={transition}
-          style={{ position: "fixed", ...geometry }}
-          className="nav-surface z-50 overflow-hidden"
-          data-open={isOpen}
-          {...dismiss.containerProps}
-          {...(isOpen
-            ? { role: "dialog" as const, "aria-modal": true, "aria-label": NAV_LABEL_OPEN }
-            : { "aria-label": NAV_LABEL_CLOSED })}
-        >
-          <div id={NAV_PANEL_ID} className="h-full w-full">
-            <AnimatePresence initial={false}>
-              {!isOpen ? (
-                <BarLayer key="bar">
-                  <NavBar
-                    placement={placement}
-                    isOpen={false}
-                    onOpenSearch={props.onOpen}
-                    searchRef={searchRef}
-                  />
-                </BarLayer>
-              ) : (
-                <PanelLayer key="panel" onPointerDown={dismiss.onPointerDown}>
-                  <NavPanel
-                    placement={placement}
-                    recentItems={props.recentItems}
-                    suggestions={props.suggestions}
-                    isSuggestionsLoading={props.isSuggestionsLoading}
-                    errorMessage={errorMessage}
-                    pending={pending}
-                    onValueChange={props.onValueChange}
-                    onRecentRemove={props.onRecentRemove}
-                    onRecentClearAll={props.onRecentClearAll}
-                    onSelect={commit}
-                    onClose={props.onClose}
-                  />
-                </PanelLayer>
-              )}
-            </AnimatePresence>
-
-            <NavMark isOpen={isOpen} />
-          </div>
-        </motion.nav>
-      </NavGeometryContext>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="nav-sheet"
+            id={NAV_PANEL_ID}
+            role="dialog"
+            aria-modal="true"
+            aria-label={NAV_LABEL_OPEN}
+            data-open="true"
+            className="nav-surface fixed z-50 overflow-hidden"
+            style={{ ...sheetGeometry(placement), ...sheetSurface(placement) }}
+            initial={hidden}
+            animate={shown}
+            exit={hidden}
+            transition={reduced ? REDUCED_MOTION_FADE : SHEET_SPRING}
+            onPointerDown={dismiss.onPointerDown}
+            {...dismiss.containerProps}
+          >
+            <NavPanel
+              recentItems={props.recentItems}
+              suggestions={props.suggestions}
+              isSuggestionsLoading={props.isSuggestionsLoading}
+              errorMessage={errorMessage}
+              pending={pending}
+              onValueChange={props.onValueChange}
+              onRecentRemove={props.onRecentRemove}
+              onRecentClearAll={props.onRecentClearAll}
+              onSelect={commit}
+              onClose={props.onClose}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

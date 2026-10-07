@@ -59,12 +59,12 @@ a user as an API-key problem. The retry policy reads the same union: `not_found`
 `invalid_query` and `quota_exceeded` never retry, `network` and `upstream` retry
 twice with backoff capped at 5 s.
 
-**The nav bar and the search panel are one element.** A single `position: fixed`
-node carries `<nav>` when closed and `role="dialog" aria-modal="true"` when open,
-springing between two geometries rather than cross-fading two components. Radix
-`Dialog` is not used because it portals its content, which would make the panel a
-different element from the bar. `<main>` takes `inert` while the panel is open,
-so no focus trap is needed.
+**The nav is two floating controls and a search sheet.** Below 1024px the units
+and search controls float in the bottom corners and the sheet rises from the
+bottom. Wider, they stack at the bottom-left under the logo and the sheet is a
+420px column sliding in from the left. One zero-bounce spring drives both. The sheet is a sibling
+`role="dialog" aria-modal="true"` rendered in place rather than portalled, and
+`<main>` and `<nav>` take `inert` while it is open, so no focus trap is needed.
 
 [`docs/architecture.md`](./docs/architecture.md) covers the module layout, the
 API surface and the rest of the contracts. The comfort vocabulary has its own

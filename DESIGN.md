@@ -162,10 +162,11 @@ components:
 > reaching the night bar's L 0.16–0.22 needs `brightness(.2)`, which drags the
 > white wordmark down to L 0.28.
 >
-> The mark sits in a 44 px box (`LOGO_BOX` in `components/nav/contract.ts`),
-> which the nav geometry reads — changing the box changes the layout. It is the
-> page's `<h1>`, labelled `air`, and it fades out while the search field takes
-> its space.
+> The mark sits in a 48 px box, the size of the search button (`LOGO_BOX` in
+> `components/nav/contract.ts`), which the nav geometry reads — changing the box
+> changes the layout. It is the page's `<h1>`, labelled `air`. Below `lg` it is
+> the centred first row of the content column; at `lg` and wider it is fixed at
+> the top-left, on the controls' centre line.
 
 ## Overview
 
@@ -406,9 +407,10 @@ only. Place a new tile in the reading order first, then give it a desktop order.
 **Density.** Tile padding comes from `--tile-pad` on `.bento-tile`, so the tiles
 cannot drift apart: `1.25rem`, rising to `1.5rem` at `sm`. The hero runs
 `1.5rem` → `2.5rem` at `sm` → `3rem` at `xl`. Interior rhythm is a `0.25rem`
-base scale. Breakpoints are Tailwind defaults. The nav takes the bottom edge
-below `md`, the top edge to `lg`, and a left rail above it; its panel is
-fullscreen below `xl` and a 420 px column beside the grid at `xl`. One `<Menu>`
+base scale. Breakpoints are Tailwind defaults. The nav's units capsule and
+round search button float in the bottom corners below `lg`; at `lg` and wider
+they stack at the bottom-left, with no bar behind them. Its search sheet spans
+the width below `lg` and is a 420 px column on the left above it. One `<Menu>`
 renders inside it at every placement — there is no variant prop and no second
 component.
 

@@ -1,13 +1,12 @@
 import { SearchIcon } from "lucide-react";
 import type { Ref } from "react";
-import { cn } from "@/lib/utils";
-import { BAR_END_INSET, BAR_THICKNESS, type NavPlacement } from "./contract";
+import { markGeometry, type NavPlacement, searchGeometry, unitsGeometry } from "./contract";
+import { NavMark } from "./nav-mark";
 import { NavTrigger } from "./nav-trigger";
 import { NavUnitToggle } from "./nav-unit-toggle";
 
-/** Between the search cell and the unit pair. The two unit cells are adjacent,
- *  so this gap is the only thing grouping them. */
-const GROUP_GAP = BAR_THICKNESS / 2;
+/** One glass piece. Below the scrim, so an open sheet dims it. */
+const PIECE = "nav-surface fixed z-30 flex items-center justify-center rounded-full";
 
 interface NavBarProps {
   placement: NavPlacement;
@@ -16,28 +15,32 @@ interface NavBarProps {
   searchRef: Ref<HTMLButtonElement>;
 }
 
+/**
+ * A units capsule and a round search button. Below `lg` they sit in the two
+ * bottom corners; at `lg` and wider they stack at the bottom of the left
+ * column, under the mark.
+ */
 export function NavBar({ placement, isOpen, onOpenSearch, searchRef }: NavBarProps) {
-  const isRail = placement.edge === "left";
-
+  const isColumn = placement.edge === "left";
   return (
-    <div
-      className={cn(
-        "flex h-full w-full items-center justify-end",
-        isRail ? "flex-col" : "flex-row",
+    <>
+      {isColumn && (
+        <div className="fixed z-30" style={markGeometry()}>
+          <NavMark />
+        </div>
       )}
-      style={{
-        gap: GROUP_GAP,
-        [isRail ? "paddingBottom" : "paddingRight"]: BAR_END_INSET,
-      }}
-    >
-      <NavTrigger
-        ref={searchRef}
-        icon={SearchIcon}
-        label="Search"
-        isOpen={isOpen}
-        onClick={onOpenSearch}
-      />
-      <NavUnitToggle vertical={isRail} />
-    </div>
+      <div className={PIECE} style={unitsGeometry(placement)}>
+        <NavUnitToggle vertical={isColumn} />
+      </div>
+      <div className={PIECE} style={searchGeometry(placement)}>
+        <NavTrigger
+          ref={searchRef}
+          icon={SearchIcon}
+          label="Search"
+          isOpen={isOpen}
+          onClick={onOpenSearch}
+        />
+      </div>
+    </>
   );
 }

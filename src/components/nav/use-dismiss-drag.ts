@@ -1,5 +1,5 @@
 import { type PanInfo, useDragControls } from "motion/react";
-import { type PointerEvent as ReactPointerEvent, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   DISMISS_BOUNCE,
   DISMISS_DISTANCE_PX,
@@ -19,17 +19,16 @@ interface DismissDragOptions {
 }
 
 /**
- * Below 1280 a drag pushes the panel back into the bar it came from. It maps
- * 1:1 onto the collapse in the placement's direction and does not move at all
- * against it; released past a distance or a velocity it closes, otherwise it
- * springs back open.
+ * Below 1280 a drag pushes the sheet back past the edge it came from. It maps
+ * 1:1 in the placement's direction and does not move at all against it;
+ * released past a distance or a velocity it closes, carrying the release
+ * velocity into the exit, otherwise it springs back open.
  */
 export function useDismissDrag({ axis, enabled, onDismiss }: DismissDragOptions) {
   const controls = useDragControls();
-  const [isDragging, setDragging] = useState(false);
 
   if (!enabled || axis === null) {
-    return { containerProps: NO_DRAG, onPointerDown: undefined, isDragging: false };
+    return { containerProps: NO_DRAG, onPointerDown: undefined };
   }
 
   const isHorizontal = axis === "left";
@@ -44,15 +43,13 @@ export function useDismissDrag({ axis, enabled, onDismiss }: DismissDragOptions)
     // Elastic 1 on the dismiss side is the 1:1 mapping; 0 on the other three
     // means the panel does not move against its own collapse.
     dragElastic: {
-      top: axis === "up" ? 1 : 0,
+      top: 0,
       bottom: axis === "down" ? 1 : 0,
       left: axis === "left" ? 1 : 0,
       right: 0,
     },
     dragTransition: DISMISS_BOUNCE,
-    onDragStart: () => setDragging(true),
     onDragEnd: (_event: unknown, info: PanInfo) => {
-      setDragging(false);
       const offset = isHorizontal ? info.offset.x : info.offset.y;
       const velocity = isHorizontal ? info.velocity.x : info.velocity.y;
       if (offset * sign >= DISMISS_DISTANCE_PX || velocity * sign >= DISMISS_VELOCITY_PX_PER_S) {
@@ -67,7 +64,7 @@ export function useDismissDrag({ axis, enabled, onDismiss }: DismissDragOptions)
     controls.start(event);
   };
 
-  return { containerProps, onPointerDown, isDragging };
+  return { containerProps, onPointerDown };
 }
 
 /**
@@ -80,8 +77,7 @@ function canScrollFurther(target: EventTarget | null, root: HTMLElement, axis: D
   let node = target instanceof Element ? target : null;
   while (node && node !== root.parentElement) {
     if (node instanceof HTMLElement && node.scrollHeight > node.clientHeight + 1) {
-      if (axis === "down") return node.scrollTop > 0;
-      return node.scrollTop + node.clientHeight < node.scrollHeight - 1;
+      return node.scrollTop > 0;
     }
     node = node.parentElement;
   }

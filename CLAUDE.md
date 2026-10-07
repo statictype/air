@@ -128,11 +128,15 @@ Contracts that span multiple files:
   (`src/lib/first-run.ts`) each supply only a key, `decode` / `encode` and a
   `fallback`. `serverValue` is a separate option because units serve `metric`
   but default to the viewer's region.
-- **The nav bar is the menu.** One `position: fixed` node carries `<nav>` when
-  closed and `role="dialog" aria-modal="true"` when open, springing between the
-  two geometries in `src/components/nav/contract.ts`. `<main>` takes `inert`
-  while the panel is open, so there is no focus trap. The placement table and
-  the pixel geometry in that file are what the `browser` project asserts.
+- **The nav is controls plus a sheet.** `<nav aria-label="Main">` holds two
+  floating glass controls (units, search): in the bottom corners below `lg`,
+  stacked at the bottom-left under the logo at `lg` and wider. There is no bar.
+  It stays mounted. Search opens a sibling
+  `role="dialog" aria-modal="true"` sheet that travels in from the controls'
+  edge on one zero-bounce spring and leaves the same way. `<main>` and `<nav>`
+  take `inert` while it is open, so there is no focus trap. The placement table
+  and the pixel geometry in `src/components/nav/contract.ts` are what the
+  `browser` project asserts.
 
 Full design narrative lives in [`docs/architecture.md`](./docs/architecture.md);
 the comfort vocabulary in [`docs/air-comfort.md`](./docs/air-comfort.md).

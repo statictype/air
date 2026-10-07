@@ -37,7 +37,7 @@ src/
 │   ├── random-cities.ts      Pools for "surprise me" and the first-run row
 │   ├── moon.ts               Moon-phase SVG geometry
 │   ├── scramble.ts           The character churn played when a reading changes
-│   └── motion/               Springs and durations for the nav transition
+│   └── motion/               Springs and durations for the nav sheet
 ├── api/
 │   ├── weather.ts            fetch wrappers; throws WeatherClientError
 │   └── types.ts              Type-only re-exports + SuggestionItem
@@ -52,12 +52,12 @@ src/
 │   ├── use-debounced-value.ts
 │   └── use-media-query.ts
 ├── components/
-│   ├── nav/                  The bar and the panel it expands into
-│   │   ├── index.tsx             Role swap, focus return, Escape, scrim, hold
+│   ├── nav/                  The controls and the search sheet they open
+│   │   ├── index.tsx             Sheet, focus return, Escape, scrim, hold
 │   │   ├── contract.ts           Placement table, geometry, element ids
-│   │   ├── nav-bar.tsx           Mark, search trigger, unit switch
+│   │   ├── nav-bar.tsx           The two floating controls, and the mark at lg+
 │   │   ├── nav-panel.tsx         Field + menu; mounts and unmounts with open
-│   │   ├── nav-layers.tsx        The bar and panel layers, and the mark
+│   │   ├── nav-mark.tsx          The logo, the page's <h1>
 │   │   ├── nav-unit-toggle.tsx   °C / °F
 │   │   ├── pending-selection.ts  Pure: hold, close, or show the error inline
 │   │   ├── use-dismiss-drag.ts   Drag-to-close
@@ -197,11 +197,15 @@ query), `air:units`, `air:visited`. The visited flag exists because history
 alone cannot distinguish a first visit from a visit that cleared its history —
 both read as an empty list.
 
-**The nav bar is the menu.** One `position: fixed` element sits on the bottom
-edge below 768px, the top edge to 1023px, and a left rail above that; the panel
-is fullscreen below 1280px and a 420px rail beside the grid above it. Opening
-springs the box from `barGeometry` to `panelGeometry` and swaps
-`<nav aria-label="Main">` for `role="dialog" aria-modal="true"` on the same node.
+**The nav is controls plus a sheet.** `<nav aria-label="Main">` holds two
+floating glass controls and no bar. Below 1024px they sit in the bottom corners
+(units left, search right), and the logo is the centred first row of the content
+column. At 1024px and wider the logo is fixed at the top-left and the two
+controls stack at the bottom-left on the same centre line, search above units.
+Search opens a sibling `role="dialog" aria-modal="true"` sheet on one
+zero-bounce spring (`SHEET_SPRING`): below 1024px it rises from the bottom; at
+1024px and wider it slides in from the left as a 420px column. `<nav>` stays
+mounted and takes `inert` with `<main>`.
 The placement table, the pixel geometry and the element ids live in
 `src/components/nav/contract.ts` and are asserted against real
 `getBoundingClientRect()` numbers by the browser test project, so a visual

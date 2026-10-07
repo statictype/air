@@ -1,4 +1,7 @@
+import { motion } from "motion/react";
+import { useId } from "react";
 import { useUnitSystemControl } from "@/hooks/use-unit-system";
+import { PILL_SPRING } from "@/lib/motion/constants";
 import type { UnitSystem } from "@/lib/units";
 import { cn } from "@/lib/utils";
 import { ICON_BUTTON } from "./contract";
@@ -19,10 +22,13 @@ const LETTER_BOX = { width: ICON_BUTTON, height: ICON_BUTTON } as const;
 function UnitLetter({
   option,
   active,
+  pillId,
   onSelect,
 }: {
   option: Option;
   active: boolean;
+  /** Shared by both letters, so the pill slides from one to the other. */
+  pillId: string;
   onSelect: (system: UnitSystem) => void;
 }) {
   return (
@@ -33,23 +39,32 @@ function UnitLetter({
       onClick={() => onSelect(option.system)}
       style={LETTER_BOX}
       className={cn(
-        "unit-switch-option flex shrink-0 items-center justify-center rounded-full outline-none",
+        "unit-switch-option relative flex shrink-0 items-center justify-center rounded-full outline-none",
         "text-[17px] leading-none font-normal transition-colors duration-150",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
       )}
     >
-      {option.glyph}
+      {active && (
+        <motion.span
+          layoutId={pillId}
+          transition={PILL_SPRING}
+          className="unit-switch-pill absolute inset-0 rounded-full"
+          aria-hidden="true"
+        />
+      )}
+      <span className="relative">{option.glyph}</span>
     </button>
   );
 }
 
 /**
- * The unit switch, in the bar at every placement. Two letters laid along the
- * bar's long axis — side by side on the top and bottom bars, stacked on the
- * rail.
+ * The unit switch, at every placement. Two letters side by side in the
+ * capsule below `lg`, stacked at `lg` and wider. A pill sits behind the active
+ * one.
  */
 export function NavUnitToggle({ vertical }: { vertical: boolean }) {
   const [system, setSystem] = useUnitSystemControl();
+  const pillId = useId();
 
   return (
     <div
@@ -57,8 +72,18 @@ export function NavUnitToggle({ vertical }: { vertical: boolean }) {
       aria-label="Units"
       className={cn("flex shrink-0 items-center", vertical ? "flex-col" : "flex-row")}
     >
-      <UnitLetter option={METRIC} active={system === "metric"} onSelect={setSystem} />
-      <UnitLetter option={IMPERIAL} active={system === "imperial"} onSelect={setSystem} />
+      <UnitLetter
+        option={METRIC}
+        active={system === "metric"}
+        pillId={pillId}
+        onSelect={setSystem}
+      />
+      <UnitLetter
+        option={IMPERIAL}
+        active={system === "imperial"}
+        pillId={pillId}
+        onSelect={setSystem}
+      />
     </div>
   );
 }

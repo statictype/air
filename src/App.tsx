@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { MotionConfig } from "motion/react";
 import { Nav } from "@/components/nav";
-import { mainPadding } from "@/components/nav/contract";
+import { mainPadding, markRow } from "@/components/nav/contract";
+import { NavMark } from "@/components/nav/nav-mark";
 import { useNavPlacement } from "@/components/nav/use-nav-placement";
 
 const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
@@ -23,6 +24,7 @@ export function App() {
 
   const activeQuery = useSearchParam("city");
   const placement = useNavPlacement();
+  const isColumn = placement.edge === "left";
 
   const { history, add: addHistory, removeWithUndo, clearAllWithUndo } = useReversibleHistory();
 
@@ -91,13 +93,24 @@ export function App() {
           />
 
           <div className="relative z-10 min-h-screen" style={mainPadding(placement)}>
-            <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col px-5 py-6 sm:px-8 sm:py-8">
+            <div
+              className={cn(
+                "mx-auto flex min-h-screen w-full max-w-[1400px] flex-col px-5 pb-6 sm:px-8 sm:pb-8",
+                isColumn && "pt-6 sm:pt-8",
+              )}
+            >
+              {/* At `lg` and wider the mark heads the left column instead. */}
+              {!isColumn && (
+                <div className="flex justify-center pb-3 sm:pb-4" style={markRow()}>
+                  <NavMark />
+                </div>
+              )}
               <main
                 className={cn(
                   "rise rise-3 flex flex-1 flex-col",
-                  // The left rail leaves a short column; anything that does not
-                  // fill it sits in the middle instead of at the top.
-                  placement.edge === "left" && "justify-center",
+                  // Beside the left column, anything that does not fill the
+                  // height sits in the middle instead of at the top.
+                  isColumn && "justify-center",
                 )}
                 aria-live="polite"
                 aria-busy={query.isFetching}

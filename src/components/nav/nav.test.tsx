@@ -11,7 +11,7 @@ import { __resetFirstRunForTests } from "@/lib/first-run";
 import { server } from "@/test/msw-server";
 import { distance, pressure, speed, temperature } from "@/worker/format";
 import { precipAmountPair } from "@/worker/precip";
-import { NAV_ROOT_ID } from "./contract";
+import { NAV_PANEL_ID, NAV_ROOT_ID } from "./contract";
 
 const paris: WeatherCurrent = {
   location: {
@@ -134,19 +134,21 @@ describe("nav shell", () => {
     expect(searchTrigger()).toHaveFocus();
   });
 
-  it("is one node across open and close, with the role changing under it", async () => {
+  it("opens a modal dialog beside the nav, which stays mounted and goes inert", async () => {
     const user = userEvent.setup();
     renderApp();
 
-    const closed = document.getElementById(NAV_ROOT_ID);
-    expect(closed).toBe(screen.getByRole("navigation", { name: "Main" }));
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    expect(nav).toHaveAttribute("id", NAV_ROOT_ID);
 
     await user.click(searchTrigger());
 
-    const open = document.getElementById(NAV_ROOT_ID);
-    expect(open).toBe(closed);
-    expect(open).toHaveAttribute("role", "dialog");
-    expect(open).toHaveAttribute("aria-modal", "true");
+    const dialog = screen.getByRole("dialog", { name: "Search" });
+    expect(dialog).toHaveAttribute("id", NAV_PANEL_ID);
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(nav).not.toContainElement(dialog);
+    expect(nav).toHaveAttribute("inert");
+    expect(document.getElementById(NAV_ROOT_ID)).toBe(nav);
   });
 
   it("marks <main> inert while the panel is open and not after it closes", async () => {

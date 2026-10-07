@@ -97,9 +97,10 @@ date and time. It is the LCP element and paints from the `current` tier alone.
 
 **Now card** — `NowCard`. The comfort sentence, then the readings behind it.
 
-**Nav** — one `position: fixed` element that is the bar when closed and the
-search panel when open. **Placement** is its resolved position for a viewport
-width: the `NavPlacement` record of bar edge, panel mode and drag axis.
+**Nav** — the `<nav>` that holds the units and search controls, and the search
+sheet it opens beside itself. **Placement** is its resolved position for a
+viewport width: the `NavPlacement` record of control edge (`bottom` or
+`left`), panel mode (`sheet` or `column`) and drag axis.
 
 **Menu model** — the pure `buildMenuModel` ladder in
 `src/components/search-bar/menu-model.ts`: recents, keep-typing, suggestions,
